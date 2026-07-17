@@ -1,6 +1,6 @@
 # HANDOFF
 
-- Updated: 2026-07-18 01:51 Asia/Taipei
+- Updated: 2026-07-18 01:55 Asia/Taipei
 - Objective: Publish the accepted non-AWS project to a private GitHub repository while keeping secrets and generated artifacts out of version control.
 
 ## Work status
@@ -56,8 +56,8 @@
 - [ ] **已實作未驗證**：MongoDB Atlas Vector Search production adapter；等待非 AWS Atlas 環境與憑證。
 - [ ] **未完成**：Atlas、production model provider 與 production OIDC 外部驗收；等待憑證與隔離環境。
 - [x] **已完成**：確認 GitHub repository 範圍與敏感檔排除。
-- [ ] **未完成**：初始化 Git、建立首次提交並驗證提交內容。
-- [ ] **未完成**：建立私人 GitHub repository、推送並驗證遠端網址。
+- [x] **已完成**：初始化 Git、建立首次提交並驗證提交內容。
+- [x] **已完成**：建立私人 GitHub repository、推送並驗證遠端網址。
 
 ## Implemented behavior
 
@@ -101,6 +101,11 @@
 
 ## Verification
 
+- GitHub repository: `https://github.com/leezxt/NewIdeaCase`，visibility `PRIVATE`，default branch `main`。
+- Git scope: 133 project files; `.env`, `target/`, JVM crash logs, and all `*.log` files are excluded by `.gitignore`.
+- Secret scan found only documented `local-dev-*` defaults and an empty example API key; no GitHub token, cloud credential, or private key was committed.
+- Initial commit `b027213` pushed successfully; `git ls-remote origin refs/heads/main` matched the local commit before the final handoff update.
+- Root `.gitattributes` preserves LF for Java/Linux/Docker files and CRLF for Windows command/PowerShell scripts.
 - `2026-07-17 03:35 .\scripts\rag-acceptance.ps1`: PASS; `qwen2.5:0.5b`, `nomic-embed-text`, document `CHUNKED`, grounded fact `ORBIT-731`, and source-document citation all passed.
 - `2026-07-17 03:34 .\mvnw.cmd -B -ntp -Prag clean verify`: PASS; 49 tests, 0 failures/errors/skips.
 - `scripts/acceptance.ps1`, `scripts/monitoring-acceptance.ps1`, `scripts/platform-services-acceptance.ps1`, and `scripts/rag-acceptance.ps1`: all PASS after restoring every non-AWS service.
