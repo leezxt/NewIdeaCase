@@ -1,0 +1,14 @@
+spring:
+  data:
+    mongodb:
+      auto-index-creation: true
+
+app:
+  security:
+    enabled: false
+  rag:
+    enabled: false
+  knowledge:
+    default-tenant-id: local
+  aws:
+    enabled: false

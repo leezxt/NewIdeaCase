@@ -1,0 +1,19 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: mailpit:1025
+  smtp_from: alerts@newideacase.local
+  smtp_require_tls: false
+
+route:
+  receiver: local-email
+  group_by:
+    - alertname
+  group_wait: 5s
+  group_interval: 30s
+  repeat_interval: 4h
+
+receivers:
+  - name: local-email
+    email_configs:
+      - to: developer@local.test
+        send_resolved: true

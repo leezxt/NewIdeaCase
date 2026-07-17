@@ -1,0 +1,218 @@
+# HANDOFF
+
+- Updated: 2026-07-18 01:51 Asia/Taipei
+- Objective: Publish the accepted non-AWS project to a private GitHub repository while keeping secrets and generated artifacts out of version control.
+
+## Work status
+
+- [x] **已完成**：建立 Java 21、Spring Boot 4.1.0、Maven Wrapper 專案。
+- [x] **已完成**：建立 feature-based modular package boundaries。
+- [x] **已完成**：實作商品建立/查詢的 MongoDB vertical slice。
+- [x] **已完成**：實作 Redis cache、validation、Problem Details、correlation ID。
+- [x] **已完成**：加入可切換 OIDC/JWT security 與 issuer/audience validation。
+- [x] **已完成**：建立 RAG API/port、Spring AI 2.0.0 Maven profile 與 disabled adapter。
+- [x] **已完成**：建立 Dockerfile、MongoDB replica set、Redis、Spring Boot Compose topology。
+- [x] **已完成**：建立 AWS adapter plan 與 `ObjectStoragePort`，未加入 AWS SDK 或連線。
+- [x] **已完成**：完成 Maven、Docker、OpenAPI 與端到端 API 驗證。
+- [x] **已完成**：實作商品 PATCH、`@Version` 樂觀鎖與 stale-write `409`。
+- [x] **已完成**：實作 `(createdAt, _id)` descending opaque cursor pagination。
+- [x] **已完成**：加入 controller/service 單元測試與 Testcontainers MongoDB 整合測試。
+- [x] **已完成**：更新 README 的 list/PATCH 契約與 PowerShell 範例。
+- [x] **已完成**：重建 app 容器並完成新 API 端到端驗證。
+- [x] **已完成**：加入 `clearDescription=true` 明確清除商品描述，並拒絕互斥輸入。
+- [x] **已完成**：建立純文字 knowledge document 註冊/查詢 API 與 MongoDB 持久化。
+- [x] **已完成**：以 tenant + SHA-256 checksum 保證文件重送冪等。
+- [x] **已完成**：建立 `KnowledgeIngestionPort` 與 disabled adapter，不呼叫模型或 Atlas。
+- [x] **已完成**：新增 controller/service/Testcontainers MongoDB 測試並更新 README/架構文件。
+- [x] **已完成**：重建 app 容器並驗證新 knowledge/PATCH API。
+- [x] **已完成**：建立 MongoDB transaction writer，原子建立 knowledge document 與 outbox task。
+- [x] **已完成**：建立 atomic claim、30 秒 lease、有限重試、expired lease recovery 與 terminal failure。
+- [x] **已完成**：建立 deterministic normalization、overlapping chunks 與冪等 chunk IDs/索引。
+- [x] **已完成**：舊 PENDING 文件 reconciliation 與 stale chunk 清理。
+- [x] **已完成**：新增 28 個測試、驗收腳本及本機/外部驗收矩陣。
+- [x] **已完成**：重建 app 並執行 `scripts/acceptance.ps1`。
+- [x] **已完成**：短暫停止/恢復 Redis，驗證 MongoDB 原始資料與 cache 可重建性。
+- [x] **已完成**：加入 catalog/knowledge route scopes 與 mock JWT `401`、`403` 驗證。
+- [x] **已完成**：由 JWT 後端解析 tenant/roles；local/test 保留 backend default tenant。
+- [x] **已完成**：Knowledge document/chunk 保存 `allowedRoles`，跨 tenant 或 role 不符統一回 `404`。
+- [x] **已完成**：RAG query port 攜帶 tenant/roles context，等待真實 adapter 使用 metadata filter。
+- [x] **已完成**：`-Prag clean verify` 通過 40 tests。
+- [x] **已完成**：重建 Compose app 並通過 acceptance、Mongo ACL、AWS dependency、non-root runtime 回歸。
+- [x] **已完成**：加入 Prometheus registry、HTTP histogram 與 metrics endpoint 設定。
+- [x] **已完成**：加入 knowledge ingestion outcome counters 與 pending/processing/failed queue gauges；worker tests 通過。
+- [x] **已完成**：建立 Prometheus scrape/alerts 與 Grafana datasource/dashboard provisioning。
+- [x] **已完成**：建立 `scripts/monitoring-acceptance.ps1` 並通過 Compose config 與完整 Maven build。
+- [x] **已完成**：重建 App、Prometheus、Grafana 並通過 application/monitoring runtime acceptance。
+- [x] **已完成**：Caddy HTTPS gateway 與 HTTP redirect。
+- [x] **已完成**：Keycloak realm、API client、tenant/roles claims、scopes 與獨立 secure app。
+- [x] **已完成**：Mailpit SMTP/Web UI、Alertmanager email receiver 與 Prometheus integration。
+- [x] **已完成**：Loki、Promtail、Spring Boot file logs 與 Grafana Loki datasource。
+- [x] **已完成**：Portainer local Docker management service。
+- [x] **已完成**：`scripts/platform-services-acceptance.ps1` end-to-end acceptance。
+- [x] **已完成**：User profile 與 Order 業務模組。
+- [x] **已完成**：本機 Ollama Chat/Embedding 與 Spring AI SimpleVectorStore RAG；`qwen2.5:0.5b` grounded answer、citation 與 runtime 驗收通過。
+- [x] **已完成**：將本機 RAG Chat 模型切換為 `qwen2.5:0.5b` 並完成端到端驗收。
+- [x] **已完成**：恢復並重建為 RAG 驗收而暫停的非 AWS 平台服務，完成全套回歸。
+- [ ] **已實作未驗證**：MongoDB Atlas Vector Search production adapter；等待非 AWS Atlas 環境與憑證。
+- [ ] **未完成**：Atlas、production model provider 與 production OIDC 外部驗收；等待憑證與隔離環境。
+- [x] **已完成**：確認 GitHub repository 範圍與敏感檔排除。
+- [ ] **未完成**：初始化 Git、建立首次提交並驗證提交內容。
+- [ ] **未完成**：建立私人 GitHub repository、推送並驗證遠端網址。
+
+## Implemented behavior
+
+- `POST /api/v1/products`: validates input, normalizes SKU/currency, rejects duplicate SKU, writes MongoDB, and populates Redis cache.
+- `GET /api/v1/products/{id}`: reads the product and uses Redis cache.
+- `GET /api/v1/products?limit=&cursor=`: returns newest-first keyset pages with an opaque next cursor; limit is 1-100.
+- `PATCH /api/v1/products/{id}`: partially updates a product and requires the current `version`; stale writes return `409`.
+- `PATCH /api/v1/products/{id}`: `clearDescription=true` explicitly clears the nullable description.
+- `POST /api/v1/knowledge/documents`: accepts at most 100,000 UTF-8 bytes of `text/plain`, stores source/checksum, and returns `202 PENDING` without returning source content.
+- `GET /api/v1/knowledge/documents/{id}`: returns backend-tenant-scoped ingestion metadata.
+- Security-enabled routes require catalog/knowledge read/write scopes; JWT tenant and roles never come from client request fields.
+- Knowledge documents and chunks persist backend-derived `allowedRoles`; inaccessible documents are concealed as `404`.
+- Knowledge worker transitions `PENDING -> PROCESSING -> CHUNKED`, never `READY` before embeddings exist.
+- MongoDB outbox tasks use atomic lease claims, three bounded attempts, expired-lease recovery, and terminal `FAILED` state.
+- `POST /api/v1/rag/answers`: returns RFC Problem Details `503` until a real Spring AI adapter is connected.
+- `/actuator/health`: returns `UP` in the running Compose environment.
+- `/actuator/prometheus`: exposes JVM, HTTP, process, and knowledge ingestion metrics for Prometheus.
+- Prometheus scrapes `newideacase-app`, evaluates four application alert rules, and persists data in a named volume.
+- Grafana provisions the Prometheus datasource and dashboard UID `newideacase-platform` with availability, HTTP, JVM, CPU, and ingestion panels.
+- `/v3/api-docs` and `/swagger-ui.html`: expose the current API contract.
+
+## Main files
+
+- `pom.xml`: Boot 4.1.0, Spring AI BOM 2.0.0, Testcontainers 2.0.5, `rag` profile.
+- `src/main/java/com/newideacase/platform/catalog`: product vertical slice.
+- `src/main/java/com/newideacase/platform/catalog/application/ProductCursorCodec.java`: fixed-width URL-safe cursor codec.
+- `src/main/java/com/newideacase/platform/catalog/infrastructure/MongoProductQueryRepository.java`: keyset MongoDB query.
+- `src/test/java/com/newideacase/platform/catalog/infrastructure/ProductMongoIntegrationTest.java`: pagination and optimistic-lock integration coverage.
+- `src/main/java/com/newideacase/platform/knowledge`: document intake, status, ingestion port, disabled adapter, and existing RAG answer boundary.
+- `src/test/java/com/newideacase/platform/knowledge`: API, service, and real MongoDB ingestion tests.
+- `scripts/acceptance.ps1`: repeatable Compose acceptance covering products, cache, outbox, chunks, OpenAPI, and disabled RAG.
+- `docs/ACCEPTANCE.md`: accepted local scope and explicitly deferred external gates.
+- `src/main/java/com/newideacase/platform/knowledge`: stable RAG boundary and disabled implementation.
+- `src/main/java/com/newideacase/platform/shared`: security, errors, and correlation ID.
+- `compose.yaml`, `Dockerfile`: local runtime topology.
+- `monitoring/prometheus`: scrape and alert configuration.
+- `monitoring/grafana`: provisioned datasource and `NewIdeaCase Platform` dashboard.
+- `scripts/monitoring-acceptance.ps1`: verifies application metrics, Prometheus target health, Grafana health, and dashboard provisioning.
+- `docs/AWS-ADAPTER-PLAN.md`: future AWS mapping; no live AWS integration.
+- `ARCHITECTURE.md`: complete architecture design.
+
+## Verification
+
+- `2026-07-17 03:35 .\scripts\rag-acceptance.ps1`: PASS; `qwen2.5:0.5b`, `nomic-embed-text`, document `CHUNKED`, grounded fact `ORBIT-731`, and source-document citation all passed.
+- `2026-07-17 03:34 .\mvnw.cmd -B -ntp -Prag clean verify`: PASS; 49 tests, 0 failures/errors/skips.
+- `scripts/acceptance.ps1`, `scripts/monitoring-acceptance.ps1`, `scripts/platform-services-acceptance.ps1`, and `scripts/rag-acceptance.ps1`: all PASS after restoring every non-AWS service.
+- AWS SDK-filtered dependency tree is empty; all long-running Compose services are running and configured healthchecks are healthy.
+- Ollama endpoint/model settings are now `.env`-overridable; resolved Compose defaults remain `11435`, `qwen2.5:0.5b`, and `nomic-embed-text`.
+- Parameterized `app-rag` image rebuilt; `LocalRagKnowledgeAnswerServiceTest` passed with a 128 MB test heap and `scripts/rag-acceptance.ps1` passed again. The default-heap targeted retry hit Windows `errno 1455` before tests started.
+- `2026-07-17 03:41 .\mvnw.cmd -B -ntp -Prag clean verify "-DargLine=-Xmx128m -XX:+UseSerialGC"`: PASS on the final source; 49 tests, 0 failures/errors/skips.
+- Final shared image acceptance: application, monitoring, platform services, and RAG scripts all PASS. The first application attempt raced container readiness; direct health returned `UP` and the immediate accepted rerun passed.
+- `docker compose config --quiet`: passed after changing the local RAG chat model.
+- Restoring all stopped services at once caused Docker Desktop's WSL engine to exit with `0xc00000fd`; `docker desktop status` reports `stopped`. No Compose down, reset, or volume deletion was performed.
+- `nomic-embed-text` 已下載至本機 Ollama；`qwen2.5` 原已存在。
+- 本機 RAG 原始碼與測試碼編譯成功。Targeted test JVM 因 Windows commit limit（errno 1455）無法建立，不是 assertion 或 compile failure。
+- 新增的無 Mockito ACL targeted test 已以 `-Xmx128m` 通過。
+- 首次 `app-rag` 啟動使用了舊 image，因 service 缺少 build context 而找不到 enabled adapter；Compose 已補上 build context。下一步只重建 crash-loop 中的 `app-rag`，不刪除 volume。
+- 新 image 已啟動，Mongo intake/chunking 成功，且容器可讀取 Ollama `qwen2.5` 與 `nomic-embed-text`；首次模型邊界回傳 503。下一次重建只加入不含 prompt/content 的 WARN stack trace，以定位 Spring AI 呼叫根因。
+- WARN 根因為 Ollama CUDA PTX JIT failure。Compose 將 chat/embedding `num-gpu=0`，下一次只重建 `app-rag` 以使用 CPU；不停止或重設使用者的 Ollama runtime。
+- Spring AI 2.0 embedding properties do not expose request-level `num_gpu`. A separate hidden Ollama CPU server is running at `127.0.0.1:11435` (launch PID `15068`, `OLLAMA_LLM_LIBRARY=cpu`); direct `nomic-embed-text` returned 768 dimensions. Compose now uses this endpoint and Spring AI 2.0 `chat.model` / `embedding.model` properties.
+- 為釋放測試記憶體，下一步將暫停 gateway、app-secure、Keycloak、Prometheus、Grafana、Alertmanager、Mailpit、Loki、Promtail、Portainer；不執行 Compose down、不刪除 volume。完成 RAG 驗收後必須全部恢復並重跑既有驗收。
+- `2026-07-17 03:09 .\mvnw.cmd -B -ntp -Prag clean verify`: passed, 48 tests, 0 failures/errors/skips.
+- `.\scripts\acceptance.ps1`: PASS; application health, catalog, Redis, knowledge chunking, idempotency, source privacy, and disabled RAG contract passed.
+- `.\scripts\monitoring-acceptance.ps1`: PASS; application metrics, Prometheus target, Grafana database, and dashboard provisioning passed.
+- `.\scripts\platform-services-acceptance.ps1`: PASS; HTTPS, Keycloak secure API, user profile, order transition/stale `409`, alert email, Loki logs, Grafana Loki datasource, Portainer, and Prometheus targets passed.
+- `docker compose config --quiet`: passed. AWS SDK-filtered Maven dependency tree is empty.
+- Runtime after acceptance: all long-running Compose services are running; MongoDB, Redis, Keycloak, Mailpit, Alertmanager, Prometheus, and Grafana report healthy where healthchecks are configured.
+- `2026-07-17 03:06 .\mvnw.cmd -B -ntp "-Dtest=RequestIdentityProviderTest,SecurityAuthorizationTest" test`: passed, 11 tests, 0 failures/errors/skips.
+- Keycloak runtime client now has an `oidc-sub-mapper`; a newly issued token contains `sub`, tenant, audience, roles, and all required API scopes.
+- Root cause of profile PUT failure: the Keycloak client emitted no `sub`, causing `RequestIdentity` to reject the request; the denied `/error` dispatch then masked the failure as 403.
+- Realm seed now provisions the subject mapper. The app rejects JWTs missing `sub` with an explicit access-denied error, permits ERROR dispatches, and no longer enables temporary Spring Security TRACE logging.
+- Before the next command, all Compose services remain running. This update records the intentional `app`/`app-secure` rebuild needed to apply the runtime fix; no named volume will be deleted.
+
+- `.\mvnw.cmd -B -ntp -Prag verify`: passed at 2026-07-16 00:05, 14 tests, 0 failures/errors/skips; executable JAR built.
+- `docker compose config --quiet`: passed after the new implementation.
+- `docker compose up -d --build app`: rebuilt and replaced the app container successfully without replacing MongoDB/Redis or deleting volumes.
+- End to end: created at least 3 products; two `limit=2` pages had zero duplicate IDs and returned a next cursor.
+- End to end: PATCH advanced version `0 -> 1`; retrying version `0` returned `409`; GET returned cached updated name/currency and Redis `EXISTS` returned `1`.
+- End to end: health is `UP`; OpenAPI contains product list/PATCH; disabled RAG still returns `503`.
+- `.\mvnw.cmd -B -ntp dependency:tree "-Dincludes=software.amazon.awssdk:*"`: passed with no AWS SDK dependencies.
+- Codebase graph refreshed: 466 nodes, 954 edges, persistent `.codebase-memory/graph.db.zst` written.
+- `.\mvnw.cmd -B -ntp -Prag verify`: passed at 2026-07-16 01:56, 22 tests, 0 failures/errors/skips; executable JAR built.
+- `docker compose up -d --build app`: rebuilt and replaced app successfully; MongoDB/Redis containers and volumes were preserved.
+- End to end: document POST returned `202 PENDING`; retry returned the same ID; POST/GET responses did not expose source content.
+- End to end: `clearDescription=true` persisted `null`; supplying description and clear together returned `400`.
+- End to end: health is `UP`; OpenAPI exposes knowledge POST/GET; disabled RAG still returns `503`.
+- MongoDB: verified local tenant metadata and unique `tenant_checksum_unique_idx` on `(tenantId, checksum)`.
+- Codebase graph refreshed: 605 nodes, 1357 edges, persistent artifact written.
+- `.\mvnw.cmd -B -ntp -Prag clean verify`: passed at 2026-07-16 02:27, 28 tests, 0 failures/errors/skips; executable JAR built.
+- `docker compose config --quiet`: passed; AWS SDK filtered dependency tree remains empty.
+- `.\scripts\acceptance.ps1`: PASS; cursor overlap 0, optimistic conflict 409, Redis key 1, knowledge status CHUNKED with 3 chunks, idempotent retry true, source exposure false, RAG 503.
+- Redis recovery acceptance: deleted only the acceptance cache key, stopped/started Redis without deleting its volume, preserved MongoDB source data, restored Redis healthy, read product successfully, and rebuilt the cache key.
+- MongoDB indexes verified: document tenant/checksum + status, chunk document/version/index, task claim + unique document ID; 0 FAILED and 0 PROCESSING tasks remained.
+- Runtime verified as non-root `uid=100(app)`; application logs show the expected Redis disconnect and successful reconnect.
+- Codebase graph refreshed: 814 nodes, 1877 edges, persistent artifact written.
+- `docker compose config --quiet`: passed.
+- `.\mvnw.cmd -B -ntp -Prag clean verify`: passed at 2026-07-16 18:29, 40 tests, 0 failures/errors/skips; executable JAR built.
+- Security tests: mock JWT `401`/`403`, catalog scope separation, backend tenant/roles parsing, cross-tenant/role `404`, and ACL-to-chunk propagation passed.
+- MongoDB ACL integration: non-empty `support`/`legal` roles persisted on both document and generated chunk.
+- `docker compose up -d --build app`: rebuilt and replaced only the app; MongoDB/Redis volumes were preserved.
+- `.\scripts\acceptance.ps1`: PASS; health UP, cursor overlap 0, conflict 409, Redis key 1, 3 chunks, idempotent retry, no source exposure, RAG 503.
+- Runtime: 0 FAILED/PROCESSING ingestion tasks; app runs as `uid=100(app)`; AWS SDK filtered dependency tree is empty.
+- Codebase graph refreshed: 898 nodes, 2257 edges; persistent `.codebase-memory/graph.db.zst` written.
+- Docker image build: passed; runtime uses non-root `uid=100(app)`.
+- Compose runtime: app running, MongoDB healthy replica set primary, Redis healthy.
+- `GET http://localhost:8080/actuator/health`: `UP`.
+- End-to-end product ID `6a57ac4be3a8c741165ee308`: POST and GET passed; Mongo count `1`; indexes `_id_`, `status_updated_at_idx`, `sku`; Redis key created.
+- RAG disabled contract: HTTP `503` with `service-unavailable` Problem Details.
+- OpenAPI includes product POST/GET and RAG POST routes.
+- AWS SDK dependency tree is empty.
+- Codebase knowledge graph refreshed at `.codebase-memory/graph.db.zst`.
+- `2026-07-17 02:15 .\mvnw.cmd -B -ntp -Prag clean verify`: passed, 40 tests, 0 failures/errors/skips.
+- `2026-07-17 02:16 docker compose config --quiet`: passed with App, MongoDB, Redis, Prometheus, and Grafana topology.
+- Pre-rebuild runtime: existing app, MongoDB, and Redis are running; MongoDB/Redis are healthy. HANDOFF was updated before intentionally replacing the app.
+- `docker compose up -d --build app prometheus grafana`: rebuilt the app and started Prometheus/Grafana without replacing MongoDB/Redis or deleting any volume.
+- `.\scripts\acceptance.ps1`: PASS; health UP, cursor overlap 0, stale conflict 409, Redis cache present, knowledge CHUNKED with 3 chunks, idempotent retry, source private, and RAG disabled 503.
+- `.\scripts\monitoring-acceptance.ps1`: PASS; application metrics present, Prometheus target `1`, Grafana database `ok`, dashboard UID `newideacase-platform`.
+- `promtool check config /etc/prometheus/prometheus.yml`: SUCCESS; config valid and four alert rules loaded. Prometheus rules API returned all four expected names.
+- Runtime: all five services running; MongoDB, Redis, Prometheus, and Grafana healthy; app runs as `uid=100(app)`.
+- Knowledge ingestion task collection is empty after acceptance, so no FAILED or PROCESSING tasks remain.
+- AWS SDK filtered dependency tree remains empty.
+- Codebase graph refreshed: 995 nodes, 2380 edges; persistent `.codebase-memory/graph.db.zst` written.
+- Post-acceptance log review found that mounting the entire Grafana provisioning root hides unused built-in subdirectories. HANDOFF was updated before intentionally replacing Grafana; Compose now mounts only managed datasource/dashboard subdirectories and requires a final monitoring recheck.
+- Grafana was recreated after the mount fix; `scripts/monitoring-acceptance.ps1` passed again and missing provisioning-directory errors are gone.
+
+## Running processes
+
+- Docker Desktop and its WSL engine are running. The engine recovered through `docker desktop restart`; no Docker data or volume was reset.
+- `newideacase-app-1` is running the latest accepted image at `http://localhost:8080`.
+- `newideacase-app-rag-1` is running the accepted `qwen2.5:0.5b` configuration at `http://localhost:8082`.
+- `newideacase-mongodb-1` is running and healthy at localhost port `27017`.
+- `newideacase-redis-1` is running and healthy at localhost port `6379`.
+- A separate CPU-only Ollama server is running at `http://127.0.0.1:11435` with launch PID `15068`; `nomic-embed-text` returned 768-dimensional embeddings and `qwen2.5:0.5b` is downloaded.
+- `gateway`, `app-secure`, `keycloak`, `prometheus`, `grafana`, `alertmanager`, `mailpit`, `loki`, `promtail`, and `portainer` are all running; configured healthchecks are healthy.
+- Stop later with `docker compose down` from the project directory. Volumes are intentionally preserved unless explicitly removed.
+
+## Known limits and next step
+
+- AWS remains disabled (`app.aws.enabled=false`); no AWS account or resources were touched.
+- `app-rag` has been recreated with `qwen2.5:0.5b` and passed runtime acceptance.
+- `app`, `app-secure`, `app-rag`, and all non-AWS platform services run the final accepted configuration. Every named volume remains preserved.
+- Local RAG is enabled only on `app-rag` (`8082`) with Ollama Chat/Embedding and `SimpleVectorStore`; the default app (`8080`) keeps the explicit disabled `503` contract. Atlas Vector Search remains unconnected.
+- Security is disabled on the default local app (`8080`) and enabled on the accepted Keycloak-backed secure app (`8081`).
+- Knowledge documents reach `CHUNKED`; local embedding, retrieval, citations, and model calls are accepted. Persistent Atlas Vector Search behavior remains externally unverified.
+- Local intake stores at most 100 KB of plain text directly in MongoDB; the later production adapter moves raw files behind `ObjectStoragePort`/S3.
+- No destructive cleanup or Git initialization was performed.
+- Local monitoring implementation and acceptance are complete. Re-run `scripts/acceptance.ps1` and `scripts/monitoring-acceptance.ps1` after future runtime changes.
+- Grafana 12.1.0 logs a startup warning at error level that the built-in `table` plugin is already registered. The persisted plugins directory has no duplicate table plugin; Grafana health, datasource, and dashboard provisioning are unaffected.
+- Non-AWS service configuration validation passed for Compose, Keycloak realm JSON, Caddy, Alertmanager, Loki, Promtail, and the new acceptance script.
+- All accepted non-AWS services remain running. No named volume was deleted.
+- First full Compose start created all non-AWS services, but Keycloak was marked unhealthy because its `/bin/sh` does not support `/dev/tcp`; Keycloak itself started and imported the realm successfully. HANDOFF was updated before intentionally recreating only Keycloak with an explicit `/bin/bash` healthcheck. No volume will be deleted.
+- The Keycloak Bash build also lacks network redirection. An in-container `kcadm.sh` realm check passed, so the healthcheck now uses the supported Admin CLI before the second Keycloak-only recreation.
+- HTTPS, Keycloak token/secure API, Alertmanager, and Mailpit acceptance passed. Loki remained empty because the non-root app could not create a file in the root-owned named volume. HANDOFF was updated before intentionally replacing app/app-secure; a one-shot `logs-init` now assigns the volume to app `uid=100`, without deleting the volume or running the app as root.
+- Loki/Promtail and the Grafana Loki datasource passed after the permission fix. Portainer entered its documented five-minute admin initialization timeout while other services were being debugged. HANDOFF was updated before restarting only Portainer; its volume is preserved and the acceptance script will initialize the local admin immediately.
+- User Profile and Order modules now compile and their 15 affected tests pass. Keycloak contains and assigns `profile.read/write` plus `orders.read/write`. HANDOFF was updated before intentionally rebuilding app/app-secure for runtime acceptance; all MongoDB and service volumes remain preserved.
+- The initial profile PUT 403 was traced to a missing Keycloak `sub` mapper plus a denied ERROR dispatch. Both are fixed; TRACE was removed and the full platform acceptance now passes.
+- Next command after future changes: run `.\mvnw.cmd -B -ntp -Prag clean verify` and all four acceptance scripts while preserving every named volume.
+- The next external gate requires production OIDC, isolated MongoDB Atlas Vector Search, production model-provider credentials, production object storage, alert routing, and backup infrastructure. AWS remains paused.

@@ -1,0 +1,12 @@
+target/
+.idea/
+.vscode/
+*.iml
+.env
+*.log
+.DS_Store
+data/
+uploads/
+!/.mvn/wrapper/maven-wrapper.properties
+!mvnw
+!mvnw.cmd

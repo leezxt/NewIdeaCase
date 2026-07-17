@@ -1,0 +1,80 @@
+spring:
+  application:
+    name: new-idea-case-platform
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/new_idea_case}
+  data:
+    mongodb:
+      auto-index-creation: false
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: 2s
+      timeout: 2s
+      repositories:
+        enabled: false
+  cache:
+    type: redis
+    redis:
+      time-to-live: 10m
+      cache-null-values: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    redis:
+      enabled: false
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  security:
+    enabled: false
+    issuer-uri: ${OIDC_ISSUER_URI:}
+    audience: ${OIDC_AUDIENCE:new-idea-case-api}
+    tenant-claim: ${OIDC_TENANT_CLAIM:tenant_id}
+    roles-claim: ${OIDC_ROLES_CLAIM:roles}
+  rag:
+    enabled: false
+    model-name: ${RAG_MODEL_NAME:qwen2.5:0.5b}
+    top-k: ${RAG_TOP_K:6}
+    similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.45}
+  knowledge:
+    default-tenant-id: ${KNOWLEDGE_DEFAULT_TENANT_ID:local}
+    chunk-size: ${KNOWLEDGE_CHUNK_SIZE:1000}
+    chunk-overlap: ${KNOWLEDGE_CHUNK_OVERLAP:100}
+    worker:
+      poll-interval-ms: ${KNOWLEDGE_POLL_INTERVAL_MS:1000}
+      max-attempts: ${KNOWLEDGE_MAX_ATTEMPTS:3}
+      retry-delay-ms: ${KNOWLEDGE_RETRY_DELAY_MS:1000}
+  aws:
+    enabled: false
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:application},%X{correlationId:-}]"

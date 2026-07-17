@@ -1,0 +1,10 @@
+target/
+.git/
+.idea/
+.vscode/
+.codebase-memory/
+docs/
+ARCHITECTURE.md
+HANDOFF.md
+.env
+*.log

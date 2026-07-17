@@ -1,0 +1,29 @@
+spring:
+  cache:
+    type: none
+  ai:
+    model:
+      chat: none
+      embedding: none
+      audio:
+        speech: none
+        transcription: none
+      image: none
+      moderation: none
+    vectorstore:
+      type: none
+      mongodb:
+        initialize-schema: false
+  data:
+    mongodb:
+      auto-index-creation: false
+
+app:
+  security:
+    enabled: false
+  rag:
+    enabled: false
+  knowledge:
+    default-tenant-id: test
+  aws:
+    enabled: false

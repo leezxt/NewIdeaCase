@@ -1,0 +1,325 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  mongo-init:
+    image: mongo:8.0
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    entrypoint:
+      - mongosh
+      - --host
+      - mongodb:27017
+      - --eval
+      - >-
+        try { rs.status() }
+        catch (error) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}) }
+    restart: "no"
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-local-dev-password}"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-local-dev-password}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  logs-init:
+    image: alpine:3.22
+    command:
+      - sh
+      - -c
+      - chown -R 100:101 /var/log/newideacase
+    volumes:
+      - app-logs:/var/log/newideacase
+    restart: "no"
+
+  app:
+    image: newideacase-app:local
+    build:
+      context: .
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      MONGODB_URI: mongodb://mongodb:27017/new_idea_case?replicaSet=rs0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-local-dev-password}
+      LOGGING_FILE_NAME: /var/log/newideacase/application.log
+    ports:
+      - "8080:8080"
+    volumes:
+      - app-logs:/var/log/newideacase
+    depends_on:
+      logs-init:
+        condition: service_completed_successfully
+      mongo-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.3
+    command:
+      - start-dev
+      - --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-local-dev-keycloak-password}
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME: http://identity.localhost:8180
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./identity/keycloak/realm-newideacase.json:/opt/keycloak/data/import/realm-newideacase.json:ro
+      - keycloak-data:/opt/keycloak/data
+    healthcheck:
+      test:
+        - CMD
+        - /bin/bash
+        - -c
+        - >-
+          /opt/keycloak/bin/kcadm.sh config credentials
+          --server http://localhost:8080 --realm master
+          --user "$$KC_BOOTSTRAP_ADMIN_USERNAME"
+          --password "$$KC_BOOTSTRAP_ADMIN_PASSWORD"
+          --config /tmp/kcadm-health.config >/dev/null 2>&1 &&
+          /opt/keycloak/bin/kcadm.sh get realms/newideacase
+          --config /tmp/kcadm-health.config >/dev/null 2>&1
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    restart: unless-stopped
+
+  app-secure:
+    image: newideacase-app:local
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      MONGODB_URI: mongodb://mongodb:27017/new_idea_case?replicaSet=rs0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-local-dev-password}
+      APP_SECURITY_ENABLED: "true"
+      OIDC_ISSUER_URI: http://identity.localhost:8180/realms/newideacase
+      OIDC_AUDIENCE: new-idea-case-api
+      LOGGING_FILE_NAME: /var/log/newideacase/secure-application.log
+    extra_hosts:
+      - identity.localhost:host-gateway
+    ports:
+      - "8081:8080"
+    volumes:
+      - app-logs:/var/log/newideacase
+    depends_on:
+      logs-init:
+        condition: service_completed_successfully
+      mongo-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped
+
+  app-rag:
+    image: newideacase-app:local
+    build:
+      context: .
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      MONGODB_URI: mongodb://mongodb:27017/new_idea_case?replicaSet=rs0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-local-dev-password}
+      APP_RAG_ENABLED: "true"
+      RAG_MODEL_NAME: ${RAG_CHAT_MODEL:-qwen2.5:0.5b}
+      RAG_SIMILARITY_THRESHOLD: "0.0"
+      SPRING_AI_OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11435}
+      SPRING_AI_OLLAMA_CHAT_MODEL: ${RAG_CHAT_MODEL:-qwen2.5:0.5b}
+      SPRING_AI_OLLAMA_CHAT_NUM_G_P_U: "0"
+      SPRING_AI_OLLAMA_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-nomic-embed-text}
+      LOGGING_FILE_NAME: /var/log/newideacase/rag-application.log
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "8082:8080"
+    volumes:
+      - app-logs:/var/log/newideacase
+    depends_on:
+      logs-init:
+        condition: service_completed_successfully
+      mongo-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      app:
+        condition: service_started
+      alertmanager:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9090/-/healthy"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-local-dev-grafana-password}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.27.1
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    depends_on:
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9093/-/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.5.3
+    user: "0"
+    command:
+      - -config.file=/etc/loki/loki.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    depends_on:
+      alertmanager:
+        condition: service_healthy
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.5.3
+    user: "0"
+    command:
+      - -config.file=/etc/promtail/promtail.yml
+    volumes:
+      - ./monitoring/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - app-logs:/var/log/newideacase:ro
+      - promtail-data:/tmp
+    depends_on:
+      app:
+        condition: service_started
+      loki:
+        condition: service_started
+    restart: unless-stopped
+
+  portainer:
+    image: portainer/portainer-ce:2.27.9-alpine
+    command:
+      - --http-enabled
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    restart: unless-stopped
+
+  gateway:
+    image: caddy:2.10.0-alpine
+    ports:
+      - "443:443"
+      - "8088:8088"
+    volumes:
+      - ./gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  app-logs:
+  keycloak-data:
+  alertmanager-data:
+  loki-data:
+  promtail-data:
+  portainer-data:
+  caddy-data:
+  caddy-config:
