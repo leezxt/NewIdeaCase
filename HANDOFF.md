@@ -1,7 +1,7 @@
 # HANDOFF
 
-- Updated: 2026-07-18 01:55 Asia/Taipei
-- Objective: Publish the accepted non-AWS project to a private GitHub repository while keeping secrets and generated artifacts out of version control.
+- Updated: 2026-07-18 15:47 Asia/Taipei
+- Objective: Add and accept a responsive animated ECharts operations dashboard backed by local Actuator metrics.
 
 ## Work status
 
@@ -58,6 +58,11 @@
 - [x] **已完成**：確認 GitHub repository 範圍與敏感檔排除。
 - [x] **已完成**：初始化 Git、建立首次提交並驗證提交內容。
 - [x] **已完成**：建立私人 GitHub repository、推送並驗證遠端網址。
+- [x] **已完成**：建立 `/dashboard/` 路由與深色響應式大屏版面。
+- [x] **已完成**：以 ECharts 呈現 Actuator health、HTTP、JVM、CPU 與 ingestion 指標。
+- [x] **已完成**：完成 1440x1000 桌面與 390x844 手機瀏覽器視覺及互動驗收。
+- [x] **已完成**：更新文件、完整測試、監控驗收與 codebase index。
+- [ ] **未完成**：提交 Dashboard 變更並推送至 GitHub `main`。
 
 ## Implemented behavior
 
@@ -101,6 +106,13 @@
 
 ## Verification
 
+- `2026-07-18 15:44 .\mvnw.cmd -B -ntp -Prag clean verify "-DargLine=-Xmx128m -XX:+UseSerialGC"`: PASS; 51 tests, 0 failures/errors/skips，並成功建立可執行 JAR。
+- `2026-07-18 15:45 .\scripts\monitoring-acceptance.ps1`: PASS; `operationsDashboard=true`、Prometheus target `1`、Grafana database `ok`、dashboard UID `newideacase-platform`。
+- `docker compose config --quiet`、`node --check src/main/resources/static/dashboard/dashboard.js` 與 `git diff --check`: PASS。
+- Playwright desktop 1440x1000 與 mobile 390x844 驗收通過；ECharts canvas 非空白、實際 Actuator 指標正常呈現、無 console error、版面無重疊。驗收 session `dashboard` 已正常關閉。
+- Codebase graph refreshed: 1,351 nodes, 3,301 edges；persistent `.codebase-memory/graph.db.zst` 已更新。
+- Dashboard targeted verification: JavaScript `node --check` passed; `DashboardPageControllerTest` and `SecurityAuthorizationTest` passed 8 tests with no failures.
+- First runtime check: `/dashboard/` returned `200`, health returned `UP`, Actuator JVM/ingestion metrics were present, and ECharts rendered real HTTP/JVM values at 1440 px.
 - GitHub repository: `https://github.com/leezxt/NewIdeaCase`，visibility `PRIVATE`，default branch `main`。
 - Git scope: 133 project files; `.env`, `target/`, JVM crash logs, and all `*.log` files are excluded by `.gitignore`.
 - Secret scan found only documented `local-dev-*` defaults and an empty example API key; no GitHub token, cloud credential, or private key was committed.
@@ -190,13 +202,10 @@
 
 ## Running processes
 
-- Docker Desktop and its WSL engine are running. The engine recovered through `docker desktop restart`; no Docker data or volume was reset.
-- `newideacase-app-1` is running the latest accepted image at `http://localhost:8080`.
-- `newideacase-app-rag-1` is running the accepted `qwen2.5:0.5b` configuration at `http://localhost:8082`.
-- `newideacase-mongodb-1` is running and healthy at localhost port `27017`.
-- `newideacase-redis-1` is running and healthy at localhost port `6379`.
-- A separate CPU-only Ollama server is running at `http://127.0.0.1:11435` with launch PID `15068`; `nomic-embed-text` returned 768-dimensional embeddings and `qwen2.5:0.5b` is downloaded.
-- `gateway`, `app-secure`, `keycloak`, `prometheus`, `grafana`, `alertmanager`, `mailpit`, `loki`, `promtail`, and `portainer` are all running; configured healthchecks are healthy.
+- Docker Desktop and its WSL engine are running；未重設 Docker data，所有 named volumes 均保留。
+- 目前運行：`app` (`8080`)、MongoDB (`27017`, healthy)、Redis (`6379`, healthy)。
+- 監控驗收啟動的服務仍運行：Prometheus (`9090`, healthy)、Grafana (`3000`, healthy)、Alertmanager (`9093`, healthy)、Mailpit (`8025`, healthy)、Loki (`3100`)。
+- `app-rag`、gateway、app-secure、Keycloak、Promtail 與 Portainer 目前未運行；本輪未宣稱或驗收這些服務。
 - Stop later with `docker compose down` from the project directory. Volumes are intentionally preserved unless explicitly removed.
 
 ## Known limits and next step
@@ -211,6 +220,7 @@
 - No destructive cleanup or Git initialization was performed.
 - Local monitoring implementation and acceptance are complete. Re-run `scripts/acceptance.ps1` and `scripts/monitoring-acceptance.ps1` after future runtime changes.
 - Grafana 12.1.0 logs a startup warning at error level that the built-in `table` plugin is already registered. The persisted plugins directory has no duplicate table plugin; Grafana health, datasource, and dashboard provisioning are unaffected.
+- Dashboard 已完成本機驗收；唯一待辦是提交並推送此批變更至既有私人 GitHub repository。
 - Non-AWS service configuration validation passed for Compose, Keycloak realm JSON, Caddy, Alertmanager, Loki, Promtail, and the new acceptance script.
 - All accepted non-AWS services remain running. No named volume was deleted.
 - First full Compose start created all non-AWS services, but Keycloak was marked unhealthy because its `/bin/sh` does not support `/dev/tcp`; Keycloak itself started and imported the realm successfully. HANDOFF was updated before intentionally recreating only Keycloak with an explicit `/bin/bash` healthcheck. No volume will be deleted.

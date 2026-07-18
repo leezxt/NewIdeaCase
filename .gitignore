@@ -7,6 +7,8 @@ target/
 .DS_Store
 data/
 uploads/
+.playwright-cli/
+output/playwright/
 !/.mvn/wrapper/maven-wrapper.properties
 !mvnw
 !mvnw.cmd

@@ -40,6 +40,8 @@ docker compose up --build
 
 Health: `http://localhost:8080/actuator/health`
 
+Operations dashboard: `http://localhost:8080/dashboard/`
+
 Prometheus: `http://localhost:9090`
 
 Grafana: `http://localhost:3000` (local credentials come from `.env`; defaults are shown in `.env.example`)
@@ -126,6 +128,8 @@ Run the repeatable local acceptance suite after starting Compose:
 ```
 
 The application exposes Prometheus data at `/actuator/prometheus`. The provisioned `NewIdeaCase Platform` dashboard shows availability, HTTP request rate, 5xx ratio, p95 latency, JVM heap, process CPU, ingestion outcomes, and pending/processing/failed queue depth. Alert rules cover application downtime, elevated 5xx responses, queue backlog, and terminal ingestion failures.
+
+The responsive operations dashboard at `/dashboard/` reads the same-origin Actuator health and Prometheus endpoints every five seconds. ECharts animates HTTP throughput, latency, status distribution, endpoint ranking, JVM resources, thread counts, and knowledge-ingestion state without introducing a separate frontend build toolchain.
 
 The Compose monitoring endpoints are for local development. In production, keep `/actuator/prometheus`, Prometheus, and Grafana on private networks and put Grafana behind organization authentication; do not expose them directly to the public Internet.
 

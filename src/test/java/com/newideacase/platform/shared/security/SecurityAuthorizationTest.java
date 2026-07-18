@@ -5,12 +5,14 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.newideacase.platform.catalog.api.ProductController;
 import com.newideacase.platform.catalog.application.ProductService;
 import com.newideacase.platform.catalog.domain.Product;
 import com.newideacase.platform.catalog.domain.ProductStatus;
+import com.newideacase.platform.dashboard.api.DashboardPageController;
 import com.newideacase.platform.knowledge.api.KnowledgeDocumentController;
 import com.newideacase.platform.knowledge.api.RagController;
 import com.newideacase.platform.knowledge.application.KnowledgeAnswerService;
@@ -46,7 +48,8 @@ import org.springframework.test.web.servlet.MockMvc;
         KnowledgeDocumentController.class,
         RagController.class,
         UserProfileController.class,
-        OrderController.class
+        OrderController.class,
+        DashboardPageController.class
 })
 @Import({
         SecurityConfig.class,
@@ -54,7 +57,8 @@ import org.springframework.test.web.servlet.MockMvc;
         KnowledgeDocumentController.class,
         RagController.class,
         UserProfileController.class,
-        OrderController.class
+        OrderController.class,
+        DashboardPageController.class
 })
 @ImportAutoConfiguration({
         SecurityAutoConfiguration.class,
@@ -100,6 +104,13 @@ class SecurityAuthorizationTest {
     void returns401WithoutJwt() throws Exception {
         mockMvc.perform(get("/api/v1/products/product-id"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void allowsDashboardWithoutJwt() throws Exception {
+        mockMvc.perform(get("/dashboard/"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/dashboard/index.html"));
     }
 
     @Test

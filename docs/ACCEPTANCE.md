@@ -11,6 +11,7 @@ Latest complete non-AWS local acceptance: **PASS** at 2026-07-17 03:41 Asia/Taip
 - Queue state: 0 `FAILED` and 0 `PROCESSING` ingestion tasks after acceptance.
 - Monitoring build: Prometheus registry, ingestion metrics, Compose topology, and provisioning files compile; `docker compose config --quiet` passes.
 - Monitoring runtime: application metrics found, Prometheus target value `1`, four alert rules loaded, Grafana database `ok`, and dashboard UID `newideacase-platform` provisioned.
+- Operations dashboard: `/dashboard/` serves the responsive ECharts surface and reads same-origin Actuator metrics without authentication.
 - Platform runtime: Caddy HTTPS/redirect, Keycloak token and secure API, Mailpit/Alertmanager email, Loki/Promtail logs, Grafana Loki datasource, and Portainer `2.27.9` passed.
 - Business runtime: user profile persisted the Keycloak `sub`; an owned order preserved product snapshots and totals, transitioned `PENDING -> CONFIRMED`, and rejected a stale version with `409`.
 - Local RAG runtime: Ollama `qwen2.5:0.5b`, `nomic-embed-text`, grounded fact retrieval, and source-document citation passed on port `8082`.

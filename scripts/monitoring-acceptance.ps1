@@ -31,6 +31,13 @@ Wait-Until -FailureMessage 'Application Prometheus endpoint did not become ready
         $metrics -match 'knowledge_ingestion_queue_size'
 }
 
+$dashboard = (Invoke-WebRequest -Uri "$AppBaseUri/dashboard/" -TimeoutSec 10).Content
+if ($dashboard -notmatch 'traffic-chart' -or
+    $dashboard -notmatch 'resource-chart' -or
+    $dashboard -notmatch 'echarts@5\.6\.0') {
+    throw 'Operations dashboard did not expose the expected ECharts surface'
+}
+
 Wait-Until -FailureMessage 'Prometheus did not report the application target as up' -Condition {
     $targets = Invoke-RestMethod -Uri "$PrometheusBaseUri/api/v1/targets" -TimeoutSec 5
     return @($targets.data.activeTargets | Where-Object {
@@ -60,6 +67,7 @@ $prometheusUp = Invoke-RestMethod -Uri `
 [pscustomobject]@{
     result = 'PASS'
     applicationMetrics = $true
+    operationsDashboard = $true
     prometheusTarget = $prometheusUp.data.result[0].value[1]
     grafanaDatabase = $grafanaHealth.database
     grafanaDashboard = 'newideacase-platform'

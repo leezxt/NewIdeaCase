@@ -43,7 +43,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(
                                 "/actuator/health/**", "/actuator/prometheus",
-                                "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
+                                "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**",
+                                "/dashboard", "/dashboard/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**")
                         .hasAuthority("SCOPE_catalog.read")

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>NewIdeaCase 平台營運中心</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/dashboard/dashboard.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+    <script defer src="/dashboard/dashboard.js"></script>
+</head>
+<body>
+<main class="dashboard-shell">
+    <header class="dashboard-header">
+        <div class="brand-block">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <div>
+                <p class="eyebrow">NEWIDEACASE OPERATIONS</p>
+                <h1>平台營運中心</h1>
+            </div>
+        </div>
+        <div class="header-status">
+            <div class="clock-block">
+                <time id="current-time">--:--:--</time>
+                <span id="current-date">----/--/--</span>
+            </div>
+            <div class="live-state" id="live-state" data-state="loading">
+                <span class="live-dot" aria-hidden="true"></span>
+                <span id="live-label">連線中</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="summary-grid" aria-label="平台摘要">
+        <article class="summary-card">
+            <span class="summary-label">應用狀態</span>
+            <strong class="summary-value status-value" id="health-value">檢查中</strong>
+            <span class="summary-meta" id="health-meta">等待健康檢查</span>
+        </article>
+        <article class="summary-card">
+            <span class="summary-label">累計 HTTP 請求</span>
+            <strong class="summary-value" id="request-value">--</strong>
+            <span class="summary-meta"><span id="rps-value">--</span> req/s</span>
+        </article>
+        <article class="summary-card">
+            <span class="summary-label">成功率</span>
+            <strong class="summary-value" id="success-value">--</strong>
+            <span class="summary-meta" id="error-meta">等待請求資料</span>
+        </article>
+        <article class="summary-card">
+            <span class="summary-label">平均回應時間</span>
+            <strong class="summary-value" id="latency-value">--</strong>
+            <span class="summary-meta">HTTP server average</span>
+        </article>
+    </section>
+
+    <section class="dashboard-grid" aria-label="平台指標圖表">
+        <article class="panel panel-wide">
+            <div class="panel-heading">
+                <div>
+                    <p class="panel-kicker">TRAFFIC</p>
+                    <h2>即時請求趨勢</h2>
+                </div>
+                <span class="panel-unit">5 秒取樣</span>
+            </div>
+            <div id="traffic-chart" class="chart chart-large" role="img" aria-label="每秒 HTTP 請求與平均回應時間趨勢圖"></div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="panel-kicker">RESOURCES</p>
+                    <h2>資源使用率</h2>
+                </div>
+                <span class="panel-unit">%</span>
+            </div>
+            <div id="resource-chart" class="chart chart-large" role="img" aria-label="CPU 與 JVM Heap 使用率儀表"></div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="panel-kicker">HTTP STATUS</p>
+                    <h2>回應狀態分布</h2>
+                </div>
+                <span class="panel-unit">累計</span>
+            </div>
+            <div id="status-chart" class="chart" role="img" aria-label="HTTP 狀態碼分布環形圖"></div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="panel-kicker">KNOWLEDGE</p>
+                    <h2>知識匯入處理</h2>
+                </div>
+                <span class="panel-unit">工作數</span>
+            </div>
+            <div id="ingestion-chart" class="chart" role="img" aria-label="知識匯入佇列與處理結果長條圖"></div>
+        </article>
+
+        <article class="panel panel-wide">
+            <div class="panel-heading">
+                <div>
+                    <p class="panel-kicker">ENDPOINTS</p>
+                    <h2>端點平均延遲</h2>
+                </div>
+                <span class="panel-unit">ms</span>
+            </div>
+            <div id="endpoint-chart" class="chart" role="img" aria-label="HTTP 端點平均延遲排名圖"></div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="panel-kicker">JVM</p>
+                    <h2>執行緒狀態</h2>
+                </div>
+                <span class="panel-unit">threads</span>
+            </div>
+            <div id="thread-chart" class="chart" role="img" aria-label="JVM 執行緒即時數量圖"></div>
+        </article>
+
+        <article class="panel activity-panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="panel-kicker">EVENT STREAM</p>
+                    <h2>監控事件</h2>
+                </div>
+                <span class="panel-unit" id="refresh-label">尚未更新</span>
+            </div>
+            <ol class="event-list" id="event-list" aria-live="polite">
+                <li><time>--:--:--</time><span>監控資料初始化</span><b data-level="info">INFO</b></li>
+            </ol>
+        </article>
+    </section>
+
+    <footer class="dashboard-footer">
+        <span>Spring Boot 4.1 · MongoDB · Redis · Spring AI</span>
+        <span id="sample-count">0 samples</span>
+    </footer>
+</main>
+</body>
+</html>
