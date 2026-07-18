@@ -1,7 +1,7 @@
 # HANDOFF
 
-- Updated: 2026-07-18 15:50 Asia/Taipei
-- Objective: Add and accept a responsive animated ECharts operations dashboard backed by local Actuator metrics.
+- Updated: 2026-07-18 16:04 Asia/Taipei
+- Objective: Publish the current NewIdeaCase architecture diagram in the GitHub repository overview.
 
 ## Work status
 
@@ -63,6 +63,8 @@
 - [x] **已完成**：完成 1440x1000 桌面與 390x844 手機瀏覽器視覺及互動驗收。
 - [x] **已完成**：更新文件、完整測試、監控驗收與 codebase index。
 - [x] **已完成**：提交 Dashboard 變更並推送至 GitHub `main`。
+- [ ] **已實作未驗證**：在 README 首頁嵌入專案 Mermaid 架構圖並連結完整架構文件。
+- [ ] **未完成**：更新 GitHub repository About 簡介並驗證遠端呈現。
 
 ## Implemented behavior
 

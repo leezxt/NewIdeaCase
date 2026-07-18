@@ -2,6 +2,62 @@
 
 Java 21 modular Spring Boot 4.1.0 application backed by MongoDB and Redis. The local platform includes catalog, user profile, ordering, security, monitoring, logging, and a Spring AI/Ollama RAG runtime. AWS deployment and SDK integration are intentionally paused.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    Client["Postman / Web / Mobile"]
+    Caddy["Caddy HTTPS Gateway\n:443 / redirect :8088"]
+
+    subgraph Local["Docker Compose platform"]
+        App["Spring Boot App\n:8080"]
+        Secure["Secure App\n:8081"]
+        RagApp["Spring Boot Local RAG\n:8082"]
+        Worker["Knowledge Ingestion Worker\nin-process"]
+        Mongo[("MongoDB replica set\n:27017")]
+        Redis[("Redis\n:6379")]
+        Keycloak["Keycloak OIDC\n:8180"]
+        Prometheus["Prometheus\n:9090"]
+        Alertmanager["Alertmanager\n:9093"]
+        Mailpit["Mailpit SMTP/UI\n:1025 / :8025"]
+        Loki["Loki\n:3100"]
+        Promtail["Promtail"]
+        Grafana["Grafana\n:3000"]
+        Portainer["Portainer\n:9000 / :9443"]
+        Ollama["CPU Ollama\nChat + Embedding :11435"]
+    end
+
+    Atlas["MongoDB Atlas Vector Search\nnot connected"]
+    AWS["AWS services\ndeployment paused"]
+
+    Client -->|HTTPS| Caddy
+    Client -->|JWT API| Secure
+    Caddy --> App
+    Secure --> Keycloak
+    App --> Mongo
+    Secure --> Mongo
+    RagApp --> Mongo
+    App --> Redis
+    Secure --> Redis
+    RagApp --> Redis
+    RagApp --> Ollama
+    Worker --> Mongo
+    Prometheus --> App
+    Prometheus --> Alertmanager
+    Alertmanager --> Mailpit
+    Promtail --> Loki
+    App --> Promtail
+    Secure --> Promtail
+    Grafana --> Prometheus
+    Grafana --> Loki
+    Portainer --> Local
+    Worker -.-> Atlas
+    RagApp -.-> Atlas
+    AWS -.-> Local
+```
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for module boundaries, data flows, security, RAG, observability, and deployment decisions.
+
 ## Implemented
 
 - `POST /api/v1/products` creates a product in MongoDB.
