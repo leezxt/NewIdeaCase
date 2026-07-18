@@ -1,6 +1,6 @@
 # HANDOFF
 
-- Updated: 2026-07-18 16:18 Asia/Taipei
+- Updated: 2026-07-18 16:22 Asia/Taipei
 - Objective: Make the GitHub repository overview and architecture diagram bilingual in Traditional Chinese and English.
 
 ## Work status
@@ -65,9 +65,9 @@
 - [x] **已完成**：提交 Dashboard 變更並推送至 GitHub `main`。
 - [x] **已完成**：在 README 首頁嵌入專案 Mermaid 架構圖並連結完整架構文件。
 - [x] **已完成**：更新 GitHub repository About 簡介並驗證遠端呈現。
-- [ ] **已實作未驗證**：將 README 首頁專案摘要改為中英雙語。
-- [ ] **已實作未驗證**：為 Mermaid 架構圖的節點、資料流與部署狀態加入中文解釋。
-- [ ] **未完成**：更新 GitHub About 雙語簡介、驗證遠端渲染並推送 `main`。
+- [x] **已完成**：將 README 首頁專案摘要改為中英雙語。
+- [x] **已完成**：為 Mermaid 架構圖的節點、資料流與部署狀態加入中文解釋。
+- [x] **已完成**：更新 GitHub About 雙語簡介、驗證遠端渲染並推送 `main`。
 
 ## Implemented behavior
 
@@ -111,6 +111,9 @@
 
 ## Verification
 
+- 雙語 README Mermaid 以 Mermaid CLI 成功渲染為 47,170-byte SVG；`git diff --check` 通過。
+- GitHub README API 已確認中文／英文摘要、中文架構節點與雙語圖例均存在，HTML 包含 `data-type="mermaid"` 渲染容器。
+- GitHub About 已更新為中英雙語描述；雙語架構主提交 `7f9cb24` 已推送至 `origin/main`。
 - `npx --yes --package @mermaid-js/mermaid-cli mmdc`: README Mermaid 架構圖成功渲染為 44,253-byte SVG。
 - GitHub README API 已確認遠端 `README.md` 包含 Mermaid 與 `ARCHITECTURE.md` 連結；GitHub HTML 包含 `data-type="mermaid"` 渲染容器。
 - GitHub About 描述已更新為 Java 21、Spring Boot 4.1、MongoDB、Redis、Spring AI RAG、Keycloak、Prometheus、Grafana 與 Docker Compose。
