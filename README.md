@@ -1,62 +1,68 @@
 # NewIdeaCase Platform
 
-Java 21 modular Spring Boot 4.1.0 application backed by MongoDB and Redis. The local platform includes catalog, user profile, ordering, security, monitoring, logging, and a Spring AI/Ollama RAG runtime. AWS deployment and SDK integration are intentionally paused.
+**中文：** NewIdeaCase 是以 Java 21、Spring Boot 4.1.0、MongoDB 與 Redis 建構的模組化應用平台，涵蓋商品、使用者、訂單、OIDC/JWT 安全、監控、集中式日誌，以及 Spring AI/Ollama RAG。AWS 部署與 SDK 整合目前暫停，主要功能可透過 Docker Compose 在本機驗證。
 
-## Architecture
+**English:** NewIdeaCase is a modular Java 21 and Spring Boot 4.1.0 platform backed by MongoDB and Redis. It includes catalog, user profile, ordering, OIDC/JWT security, monitoring, centralized logging, and a Spring AI/Ollama RAG runtime. AWS deployment and SDK integration are intentionally paused, while the primary platform can be validated locally with Docker Compose.
+
+## 系統架構 / Architecture
 
 ```mermaid
 flowchart LR
-    Client["Postman / Web / Mobile"]
-    Caddy["Caddy HTTPS Gateway\n:443 / redirect :8088"]
+    Client["使用者端 / Clients\nPostman・Web・Mobile"]
+    Caddy["HTTPS 閘道 / Gateway\nCaddy :443・redirect :8088"]
 
-    subgraph Local["Docker Compose platform"]
-        App["Spring Boot App\n:8080"]
-        Secure["Secure App\n:8081"]
-        RagApp["Spring Boot Local RAG\n:8082"]
-        Worker["Knowledge Ingestion Worker\nin-process"]
-        Mongo[("MongoDB replica set\n:27017")]
-        Redis[("Redis\n:6379")]
-        Keycloak["Keycloak OIDC\n:8180"]
-        Prometheus["Prometheus\n:9090"]
-        Alertmanager["Alertmanager\n:9093"]
-        Mailpit["Mailpit SMTP/UI\n:1025 / :8025"]
-        Loki["Loki\n:3100"]
-        Promtail["Promtail"]
-        Grafana["Grafana\n:3000"]
-        Portainer["Portainer\n:9000 / :9443"]
-        Ollama["CPU Ollama\nChat + Embedding :11435"]
+    subgraph Local["本機平台 / Docker Compose Platform"]
+        App["主要應用 / Main App\nSpring Boot :8080"]
+        Secure["安全應用 / Secure App\nJWT API :8081"]
+        RagApp["本機 RAG 應用 / Local RAG\nSpring AI :8082"]
+        Worker["知識匯入工作器 / Ingestion Worker\n應用程式內執行 / in-process"]
+        Mongo[("主要資料庫 / Primary Database\nMongoDB replica set :27017")]
+        Redis[("快取與短期狀態 / Cache\nRedis :6379")]
+        Keycloak["身分與權限 / Identity\nKeycloak OIDC :8180"]
+        Prometheus["指標收集 / Metrics\nPrometheus :9090"]
+        Alertmanager["監控告警 / Alerts\nAlertmanager :9093"]
+        Mailpit["本機郵件驗收 / Test Mail\nMailpit :1025・:8025"]
+        Loki["集中式日誌 / Log Store\nLoki :3100"]
+        Promtail["日誌收集器 / Log Collector\nPromtail"]
+        Grafana["監控儀表板 / Dashboards\nGrafana :3000"]
+        Portainer["容器管理 / Container UI\nPortainer :9000・:9443"]
+        Ollama["本機模型 / Local Models\nOllama Chat + Embedding :11435"]
     end
 
-    Atlas["MongoDB Atlas Vector Search\nnot connected"]
-    AWS["AWS services\ndeployment paused"]
+    Atlas["正式向量檢索 / Production Vector Search\nMongoDB Atlas・尚未連接 / Not connected"]
+    AWS["AWS 雲端服務 / AWS Services\n暫停部署 / Deployment paused"]
 
-    Client -->|HTTPS| Caddy
+    Client -->|HTTPS 入口 / Entry| Caddy
     Client -->|JWT API| Secure
-    Caddy --> App
-    Secure --> Keycloak
-    App --> Mongo
-    Secure --> Mongo
-    RagApp --> Mongo
-    App --> Redis
-    Secure --> Redis
-    RagApp --> Redis
-    RagApp --> Ollama
-    Worker --> Mongo
-    Prometheus --> App
-    Prometheus --> Alertmanager
-    Alertmanager --> Mailpit
-    Promtail --> Loki
-    App --> Promtail
-    Secure --> Promtail
-    Grafana --> Prometheus
-    Grafana --> Loki
-    Portainer --> Local
-    Worker -.-> Atlas
-    RagApp -.-> Atlas
-    AWS -.-> Local
+    Caddy -->|反向代理 / Proxy| App
+    Secure -->|登入與授權 / Auth| Keycloak
+    App -->|業務資料 / Business data| Mongo
+    Secure -->|安全業務資料 / Secured data| Mongo
+    RagApp -->|文件與 chunks| Mongo
+    App -->|可重建快取 / Cache| Redis
+    Secure -->|可重建快取 / Cache| Redis
+    RagApp -->|檢索狀態 / Retrieval state| Redis
+    RagApp -->|問答與向量 / AI calls| Ollama
+    Worker -->|匯入與切片 / Ingest| Mongo
+    Prometheus -->|抓取指標 / Scrape| App
+    Prometheus -->|告警規則 / Rules| Alertmanager
+    Alertmanager -->|測試郵件 / Test email| Mailpit
+    App -->|應用日誌 / Logs| Promtail
+    Secure -->|安全日誌 / Logs| Promtail
+    Promtail -->|集中儲存 / Store| Loki
+    Grafana -->|指標查詢 / Metrics| Prometheus
+    Grafana -->|日誌查詢 / Logs| Loki
+    Portainer -->|容器管理 / Manage| Local
+    Worker -.->|正式環境規劃 / Planned| Atlas
+    RagApp -.->|正式環境規劃 / Planned| Atlas
+    AWS -.->|暫停上線 / Paused| Local
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for module boundaries, data flows, security, RAG, observability, and deployment decisions.
+**圖例 / Reading guide:** 實線代表目前本機平台的主要資料流與服務依賴；虛線代表尚未接上的正式環境整合。AWS 維持暫停部署，MongoDB Atlas Vector Search 尚未連接。
+
+完整的模組邊界、資料流、安全、RAG、可觀測性與部署決策請參閱 [ARCHITECTURE.md](ARCHITECTURE.md)。
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for complete module boundaries, data flows, security, RAG, observability, and deployment decisions.
 
 ## Implemented
 

@@ -1,7 +1,7 @@
 # HANDOFF
 
-- Updated: 2026-07-18 16:08 Asia/Taipei
-- Objective: Publish the current NewIdeaCase architecture diagram in the GitHub repository overview.
+- Updated: 2026-07-18 16:18 Asia/Taipei
+- Objective: Make the GitHub repository overview and architecture diagram bilingual in Traditional Chinese and English.
 
 ## Work status
 
@@ -65,6 +65,9 @@
 - [x] **已完成**：提交 Dashboard 變更並推送至 GitHub `main`。
 - [x] **已完成**：在 README 首頁嵌入專案 Mermaid 架構圖並連結完整架構文件。
 - [x] **已完成**：更新 GitHub repository About 簡介並驗證遠端呈現。
+- [ ] **已實作未驗證**：將 README 首頁專案摘要改為中英雙語。
+- [ ] **已實作未驗證**：為 Mermaid 架構圖的節點、資料流與部署狀態加入中文解釋。
+- [ ] **未完成**：更新 GitHub About 雙語簡介、驗證遠端渲染並推送 `main`。
 
 ## Implemented behavior
 
