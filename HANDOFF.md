@@ -1,6 +1,6 @@
 # HANDOFF
 
-- Updated: 2026-07-18 15:47 Asia/Taipei
+- Updated: 2026-07-18 15:50 Asia/Taipei
 - Objective: Add and accept a responsive animated ECharts operations dashboard backed by local Actuator metrics.
 
 ## Work status
@@ -62,7 +62,7 @@
 - [x] **已完成**：以 ECharts 呈現 Actuator health、HTTP、JVM、CPU 與 ingestion 指標。
 - [x] **已完成**：完成 1440x1000 桌面與 390x844 手機瀏覽器視覺及互動驗收。
 - [x] **已完成**：更新文件、完整測試、監控驗收與 codebase index。
-- [ ] **未完成**：提交 Dashboard 變更並推送至 GitHub `main`。
+- [x] **已完成**：提交 Dashboard 變更並推送至 GitHub `main`。
 
 ## Implemented behavior
 
@@ -220,7 +220,7 @@
 - No destructive cleanup or Git initialization was performed.
 - Local monitoring implementation and acceptance are complete. Re-run `scripts/acceptance.ps1` and `scripts/monitoring-acceptance.ps1` after future runtime changes.
 - Grafana 12.1.0 logs a startup warning at error level that the built-in `table` plugin is already registered. The persisted plugins directory has no duplicate table plugin; Grafana health, datasource, and dashboard provisioning are unaffected.
-- Dashboard 已完成本機驗收；唯一待辦是提交並推送此批變更至既有私人 GitHub repository。
+- Dashboard 主提交 `19e8983` 已推送至既有私人 GitHub repository 的 `main`。
 - Non-AWS service configuration validation passed for Compose, Keycloak realm JSON, Caddy, Alertmanager, Loki, Promtail, and the new acceptance script.
 - All accepted non-AWS services remain running. No named volume was deleted.
 - First full Compose start created all non-AWS services, but Keycloak was marked unhealthy because its `/bin/sh` does not support `/dev/tcp`; Keycloak itself started and imported the realm successfully. HANDOFF was updated before intentionally recreating only Keycloak with an explicit `/bin/bash` healthcheck. No volume will be deleted.
