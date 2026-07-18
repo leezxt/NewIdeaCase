@@ -1,6 +1,6 @@
 # HANDOFF
 
-- Updated: 2026-07-18 16:04 Asia/Taipei
+- Updated: 2026-07-18 16:08 Asia/Taipei
 - Objective: Publish the current NewIdeaCase architecture diagram in the GitHub repository overview.
 
 ## Work status
@@ -63,8 +63,8 @@
 - [x] **已完成**：完成 1440x1000 桌面與 390x844 手機瀏覽器視覺及互動驗收。
 - [x] **已完成**：更新文件、完整測試、監控驗收與 codebase index。
 - [x] **已完成**：提交 Dashboard 變更並推送至 GitHub `main`。
-- [ ] **已實作未驗證**：在 README 首頁嵌入專案 Mermaid 架構圖並連結完整架構文件。
-- [ ] **未完成**：更新 GitHub repository About 簡介並驗證遠端呈現。
+- [x] **已完成**：在 README 首頁嵌入專案 Mermaid 架構圖並連結完整架構文件。
+- [x] **已完成**：更新 GitHub repository About 簡介並驗證遠端呈現。
 
 ## Implemented behavior
 
@@ -108,6 +108,10 @@
 
 ## Verification
 
+- `npx --yes --package @mermaid-js/mermaid-cli mmdc`: README Mermaid 架構圖成功渲染為 44,253-byte SVG。
+- GitHub README API 已確認遠端 `README.md` 包含 Mermaid 與 `ARCHITECTURE.md` 連結；GitHub HTML 包含 `data-type="mermaid"` 渲染容器。
+- GitHub About 描述已更新為 Java 21、Spring Boot 4.1、MongoDB、Redis、Spring AI RAG、Keycloak、Prometheus、Grafana 與 Docker Compose。
+- 架構圖主提交 `f80034f` 已推送至 `origin/main`，本機與遠端 HEAD 驗證一致。
 - `2026-07-18 15:44 .\mvnw.cmd -B -ntp -Prag clean verify "-DargLine=-Xmx128m -XX:+UseSerialGC"`: PASS; 51 tests, 0 failures/errors/skips，並成功建立可執行 JAR。
 - `2026-07-18 15:45 .\scripts\monitoring-acceptance.ps1`: PASS; `operationsDashboard=true`、Prometheus target `1`、Grafana database `ok`、dashboard UID `newideacase-platform`。
 - `docker compose config --quiet`、`node --check src/main/resources/static/dashboard/dashboard.js` 與 `git diff --check`: PASS。
