@@ -1,6 +1,6 @@
 # HANDOFF
 
-- Updated: 2026-07-18 16:32 Asia/Taipei
+- Updated: 2026-07-18 16:40 Asia/Taipei
 - Objective: Restructure the bilingual GitHub architecture diagram into a clear three-layer architecture.
 
 ## Work status
@@ -68,9 +68,9 @@
 - [x] **已完成**：將 README 首頁專案摘要改為中英雙語。
 - [x] **已完成**：為 Mermaid 架構圖的節點、資料流與部署狀態加入中文解釋。
 - [x] **已完成**：更新 GitHub About 雙語簡介、驗證遠端渲染並推送 `main`。
-- [ ] **已實作未驗證**：將首頁框架圖重整為展示與入口、應用與業務、資料與基礎設施三層。
-- [ ] **已實作未驗證**：補上三層中英雙語職責與主要資料流說明。
-- [ ] **未完成**：驗證 Mermaid、GitHub 遠端渲染並推送 `main`。
+- [x] **已完成**：將首頁框架圖重整為展示與入口、應用與業務、資料與基礎設施三層。
+- [x] **已完成**：補上三層中英雙語職責與主要資料流說明。
+- [x] **已完成**：驗證 Mermaid、GitHub 遠端渲染並推送 `main`。
 
 ## Implemented behavior
 
@@ -114,6 +114,9 @@
 
 ## Verification
 
+- 三層 Mermaid 已以 2400px PNG 實際預覽，確認為展示、應用、資料三欄布局，中文與英文標籤可讀。
+- Mermaid CLI 渲染成功；GitHub README API 已確認三層標題與職責說明，HTML 包含 `data-type="mermaid"` 渲染容器。
+- 三層架構主提交 `5e4ad87` 已推送至 `origin/main`。
 - 雙語 README Mermaid 以 Mermaid CLI 成功渲染為 47,170-byte SVG；`git diff --check` 通過。
 - GitHub README API 已確認中文／英文摘要、中文架構節點與雙語圖例均存在，HTML 包含 `data-type="mermaid"` 渲染容器。
 - GitHub About 已更新為中英雙語描述；雙語架構主提交 `7f9cb24` 已推送至 `origin/main`。
