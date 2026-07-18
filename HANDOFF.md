@@ -1,7 +1,7 @@
 # HANDOFF
 
-- Updated: 2026-07-18 16:22 Asia/Taipei
-- Objective: Make the GitHub repository overview and architecture diagram bilingual in Traditional Chinese and English.
+- Updated: 2026-07-18 16:32 Asia/Taipei
+- Objective: Restructure the bilingual GitHub architecture diagram into a clear three-layer architecture.
 
 ## Work status
 
@@ -68,6 +68,9 @@
 - [x] **已完成**：將 README 首頁專案摘要改為中英雙語。
 - [x] **已完成**：為 Mermaid 架構圖的節點、資料流與部署狀態加入中文解釋。
 - [x] **已完成**：更新 GitHub About 雙語簡介、驗證遠端渲染並推送 `main`。
+- [ ] **已實作未驗證**：將首頁框架圖重整為展示與入口、應用與業務、資料與基礎設施三層。
+- [ ] **已實作未驗證**：補上三層中英雙語職責與主要資料流說明。
+- [ ] **未完成**：驗證 Mermaid、GitHub 遠端渲染並推送 `main`。
 
 ## Implemented behavior
 

@@ -8,55 +8,55 @@
 
 ```mermaid
 flowchart LR
-    Client["使用者端 / Clients\nPostman・Web・Mobile"]
-    Caddy["HTTPS 閘道 / Gateway\nCaddy :443・redirect :8088"]
-
-    subgraph Local["本機平台 / Docker Compose Platform"]
-        App["主要應用 / Main App\nSpring Boot :8080"]
-        Secure["安全應用 / Secure App\nJWT API :8081"]
-        RagApp["本機 RAG 應用 / Local RAG\nSpring AI :8082"]
-        Worker["知識匯入工作器 / Ingestion Worker\n應用程式內執行 / in-process"]
-        Mongo[("主要資料庫 / Primary Database\nMongoDB replica set :27017")]
-        Redis[("快取與短期狀態 / Cache\nRedis :6379")]
-        Keycloak["身分與權限 / Identity\nKeycloak OIDC :8180"]
-        Prometheus["指標收集 / Metrics\nPrometheus :9090"]
-        Alertmanager["監控告警 / Alerts\nAlertmanager :9093"]
-        Mailpit["本機郵件驗收 / Test Mail\nMailpit :1025・:8025"]
-        Loki["集中式日誌 / Log Store\nLoki :3100"]
-        Promtail["日誌收集器 / Log Collector\nPromtail"]
-        Grafana["監控儀表板 / Dashboards\nGrafana :3000"]
-        Portainer["容器管理 / Container UI\nPortainer :9000・:9443"]
-        Ollama["本機模型 / Local Models\nOllama Chat + Embedding :11435"]
+    subgraph L1["第一層：展示與入口層 / Presentation & Access Layer"]
+        direction TB
+        Client["使用者與測試工具 / Clients\nPostman・Web・Mobile"]
+        Gateway["HTTPS 入口 / Gateway\nCaddy :443・redirect :8088"]
+        Dashboard["營運監控大屏 / Operations Dashboard\nECharts・Actuator metrics"]
     end
 
-    Atlas["正式向量檢索 / Production Vector Search\nMongoDB Atlas・尚未連接 / Not connected"]
-    AWS["AWS 雲端服務 / AWS Services\n暫停部署 / Deployment paused"]
+    subgraph L2["第二層：應用與業務層 / Application & Business Layer"]
+        direction TB
+        App["核心業務 API / Core API\nSpring Boot :8080"]
+        Secure["安全業務 API / Secure API\nOIDC・JWT・RBAC :8081"]
+        RagApp["RAG 問答服務 / RAG Service\nSpring AI :8082"]
+        Worker["知識匯入工作器 / Ingestion Worker\n切片・重試・Outbox"]
+        Keycloak["身分與權限服務 / Identity Service\nKeycloak OIDC :8180"]
+    end
 
-    Client -->|HTTPS 入口 / Entry| Caddy
+    subgraph L3["第三層：資料與基礎設施層 / Data & Infrastructure Layer"]
+        direction TB
+        DataServices[("資料服務 / Data Services\nMongoDB primary・Redis cache")]
+        AIPlatform["AI 與向量能力 / AI & Vector\nOllama local・Atlas 尚未連接"]
+        PlatformOps["可觀測性與營運 / Observability & Operations\nPrometheus・Grafana・Alertmanager\nPromtail・Loki・Portainer・Mailpit"]
+        AWS["AWS 雲端服務 / AWS Services\n暫停部署 / Deployment paused"]
+    end
+
+    Client -->|HTTPS| Gateway
+    Gateway -->|一般 API / Public API| App
+    Gateway -->|監控頁面 / Dashboard| Dashboard
     Client -->|JWT API| Secure
-    Caddy -->|反向代理 / Proxy| App
-    Secure -->|登入與授權 / Auth| Keycloak
-    App -->|業務資料 / Business data| Mongo
-    Secure -->|安全業務資料 / Secured data| Mongo
-    RagApp -->|文件與 chunks| Mongo
-    App -->|可重建快取 / Cache| Redis
-    Secure -->|可重建快取 / Cache| Redis
-    RagApp -->|檢索狀態 / Retrieval state| Redis
-    RagApp -->|問答與向量 / AI calls| Ollama
-    Worker -->|匯入與切片 / Ingest| Mongo
-    Prometheus -->|抓取指標 / Scrape| App
-    Prometheus -->|告警規則 / Rules| Alertmanager
-    Alertmanager -->|測試郵件 / Test email| Mailpit
-    App -->|應用日誌 / Logs| Promtail
-    Secure -->|安全日誌 / Logs| Promtail
-    Promtail -->|集中儲存 / Store| Loki
-    Grafana -->|指標查詢 / Metrics| Prometheus
-    Grafana -->|日誌查詢 / Logs| Loki
-    Portainer -->|容器管理 / Manage| Local
-    Worker -.->|正式環境規劃 / Planned| Atlas
-    RagApp -.->|正式環境規劃 / Planned| Atlas
-    AWS -.->|暫停上線 / Paused| Local
+    Dashboard -->|同源指標 / Same-origin metrics| App
+
+    App -->|業務資料與快取 / Data & cache| DataServices
+    Secure -->|受保護資料 / Secured data| DataServices
+    RagApp -->|文件、chunks、檢索狀態| DataServices
+    Worker -->|匯入與切片 / Ingestion| DataServices
+    RagApp -->|本機問答與向量 / AI calls| AIPlatform
+    Secure -->|登入與授權 / Authentication| Keycloak
+    App -->|背景處理 / Background work| Worker
+
+    App -->|指標與日誌 / Metrics & logs| PlatformOps
+    Secure -->|安全日誌 / Security logs| PlatformOps
+    Worker -.->|正式向量規劃 / Planned vector| AIPlatform
+    App -.->|暫停上線 / Paused| AWS
 ```
+
+### 三層職責 / Layer Responsibilities
+
+1. **展示與入口層 / Presentation & Access:** 接收使用者、Postman 與 Dashboard 請求，統一處理 HTTPS 入口與頁面呈現。
+2. **應用與業務層 / Application & Business:** 執行商品、使用者、訂單、安全授權、RAG 問答及知識匯入流程。
+3. **資料與基礎設施層 / Data & Infrastructure:** 提供 MongoDB、Redis、AI 模型、監控、日誌、告警與容器管理能力。
 
 **圖例 / Reading guide:** 實線代表目前本機平台的主要資料流與服務依賴；虛線代表尚未接上的正式環境整合。AWS 維持暫停部署，MongoDB Atlas Vector Search 尚未連接。
 
