@@ -1,130 +1,174 @@
 # NewIdeaCase Platform
 
-**中文：** NewIdeaCase 是以 Java 21、Spring Boot 4.1.0、MongoDB 與 Redis 建構的模組化應用平台，涵蓋商品、使用者、訂單、OIDC/JWT 安全、監控、集中式日誌，以及 Spring AI/Ollama RAG。AWS 部署與 SDK 整合目前暫停，主要功能可透過 Docker Compose 在本機驗證。
+**中文｜** 以 Java 21 與 Spring Boot 4.1 建構、可公開審閱的模組化後端平台。  
+**English |** A portfolio-ready modular backend built with Java 21 and Spring Boot 4.1.
 
-**English:** NewIdeaCase is a modular Java 21 and Spring Boot 4.1.0 platform backed by MongoDB and Redis. It includes catalog, user profile, ordering, OIDC/JWT security, monitoring, centralized logging, and a Spring AI/Ollama RAG runtime. AWS deployment and SDK integration are intentionally paused, while the primary platform can be validated locally with Docker Compose.
+NewIdeaCase 展示的不只是 CRUD，而是一套從模組邊界、多租戶安全、可靠背景處理、快取、可觀測性，到容器化本機環境與 RAG 整合的完整後端實作。
+
+NewIdeaCase goes beyond CRUD. It demonstrates clear module boundaries, secure multi-tenant APIs, reliable background processing, caching, observability, containerized local infrastructure, and a local RAG integration.
+
+> **目前狀態 / Project status:** 核心平台、安全 API、本機基礎設施、監控堆疊、知識匯入工作器與本機 RAG adapter 已實作，並可透過 Docker Compose 重現。AWS 部署、AWS SDK 整合與 MongoDB Atlas Vector Search 不列為已完成功能。  
+> The core platform, secure API, local infrastructure, monitoring stack, ingestion worker, and local RAG adapter are implemented and reproducible with Docker Compose. AWS deployment, AWS SDK integration, and MongoDB Atlas Vector Search are intentionally not presented as completed work.
+
+## 30 秒重點 / 30-second overview
+
+| 領域 / Area | Repository 中的實作證據 / Evidence |
+|---|---|
+| 後端設計 / Backend design | 商品、使用者、訂單與知識模組；REST API；RFC Problem Details 錯誤契約 / Product, profile, order, and knowledge modules; REST APIs; RFC Problem Details |
+| 資料一致性 / Data consistency | 樂觀鎖、訂單商品快照、游標分頁、冪等文件註冊、Outbox-style worker / Optimistic locking, order snapshots, cursor pagination, idempotency, outbox-style worker |
+| 安全 / Security | OIDC/JWT、audience 驗證、scope、後端解析租戶與角色、跨租戶 404 / OIDC/JWT, audience validation, scopes, server-derived tenant and roles, non-disclosing 404s |
+| 效能 / Performance | Redis read-through cache 與有界游標查詢 / Redis read-through cache and bounded cursor queries |
+| 測試 / Testing | Maven verify、Spring Security Test、MongoDB Testcontainers |
+| 維運 / Operations | Actuator、Prometheus、Grafana、Alertmanager、Loki、Promtail、correlation ID、驗收腳本 |
+| AI 整合 / AI integration | Spring AI/Ollama、租戶與角色過濾、具來源引用的 grounded answers |
+
+## 專案目的 / Why this project exists
+
+這個專案用來呈現後端從單一 API 成長為可維運平台時所需的工程決策：
+
+- 先以模組化單體保留清楚的業務邊界，避免過早導入微服務複雜度。
+- 由後端掌控授權與租戶邊界，不信任 client 提交的 ACL 條件。
+- 讓重試、部分失敗與背景任務具有可觀測性。
+- 提供可重複執行的本機驗證流程，不只展示架構圖。
+- 清楚區分已實作功能與後續雲端整合。
+
+This project demonstrates the engineering decisions required when a backend grows from a single API into an operable platform:
+
+- Preserve clear business boundaries with a modular monolith before introducing distributed-system overhead.
+- Keep authorization and tenant boundaries under server control.
+- Make retries, partial failures, and background work observable.
+- Provide repeatable local verification instead of relying only on architecture claims.
+- Separate implemented capabilities from planned cloud integrations.
 
 ## 系統架構 / Architecture
 
-```mermaid
+~~~mermaid
 flowchart LR
-    subgraph L1["第一層：展示與入口層 / Presentation & Access Layer"]
-        direction TB
-        Client["使用者與測試工具 / Clients\nPostman・Web・Mobile"]
-        Gateway["HTTPS 入口 / Gateway\nCaddy :443・redirect :8088"]
-        Dashboard["營運監控大屏 / Operations Dashboard\nECharts・Actuator metrics"]
-    end
+    Client["Clients / Postman"] --> Caddy["Caddy HTTPS gateway"]
+    Caddy --> Core["Core API :8080"]
+    Client --> Secure["Secure API :8081"]
+    Client --> Rag["RAG API :8082"]
 
-    subgraph L2["第二層：應用與業務層 / Application & Business Layer"]
-        direction TB
-        App["核心業務 API / Core API\nSpring Boot :8080"]
-        Secure["安全業務 API / Secure API\nOIDC・JWT・RBAC :8081"]
-        RagApp["RAG 問答服務 / RAG Service\nSpring AI :8082"]
-        Worker["知識匯入工作器 / Ingestion Worker\n切片・重試・Outbox"]
-        Keycloak["身分與權限服務 / Identity Service\nKeycloak OIDC :8180"]
-    end
+    Core --> Mongo[("MongoDB")]
+    Core --> Redis[("Redis")]
+    Secure --> Mongo
+    Secure --> Keycloak["Keycloak OIDC"]
+    Core --> Worker["Ingestion worker"]
+    Worker --> Mongo
+    Rag --> Mongo
+    Rag --> Ollama["Ollama"]
 
-    subgraph L3["第三層：資料與基礎設施層 / Data & Infrastructure Layer"]
-        direction TB
-        DataServices[("資料服務 / Data Services\nMongoDB primary・Redis cache")]
-        AIPlatform["AI 與向量能力 / AI & Vector\nOllama local・Atlas 尚未連接"]
-        PlatformOps["可觀測性與營運 / Observability & Operations\nPrometheus・Grafana・Alertmanager\nPromtail・Loki・Portainer・Mailpit"]
-        AWS["AWS 雲端服務 / AWS Services\n暫停部署 / Deployment paused"]
-    end
+    Core --> Observability["Prometheus / Grafana / Loki / Alertmanager"]
+    Secure --> Observability
+    Worker --> Observability
 
-    Client -->|HTTPS| Gateway
-    Gateway -->|一般 API / Public API| App
-    Gateway -->|監控頁面 / Dashboard| Dashboard
-    Client -->|JWT API| Secure
-    Dashboard -->|同源指標 / Same-origin metrics| App
+    Core -. planned .-> AWS["AWS adapters"]
+    Rag -. planned .-> Atlas["Atlas Vector Search"]
+~~~
 
-    App -->|業務資料與快取 / Data & cache| DataServices
-    Secure -->|受保護資料 / Secured data| DataServices
-    RagApp -->|文件、chunks、檢索狀態| DataServices
-    Worker -->|匯入與切片 / Ingestion| DataServices
-    RagApp -->|本機問答與向量 / AI calls| AIPlatform
-    Secure -->|登入與授權 / Authentication| Keycloak
-    App -->|背景處理 / Background work| Worker
+系統採用模組化單體，並以不同 runtime profile 提供預設、安全與 RAG 執行路徑，使本機環境容易審閱，同時保留明確的基礎設施 adapter 邊界。
 
-    App -->|指標與日誌 / Metrics & logs| PlatformOps
-    Secure -->|安全日誌 / Security logs| PlatformOps
-    Worker -.->|正式向量規劃 / Planned vector| AIPlatform
-    App -.->|暫停上線 / Paused| AWS
-```
+The system uses a modular monolith with separate runtime profiles for the default, secured, and RAG paths. This keeps local review practical while preserving explicit infrastructure adapter boundaries.
 
-### 三層職責 / Layer Responsibilities
+完整的模組邊界、信任邊界與資料流請參閱 [ARCHITECTURE.md](ARCHITECTURE.md)。  
+See [ARCHITECTURE.md](ARCHITECTURE.md) for module boundaries, trust boundaries, data flows, and design decisions.
 
-1. **展示與入口層 / Presentation & Access:** 接收使用者、Postman 與 Dashboard 請求，統一處理 HTTPS 入口與頁面呈現。
-2. **應用與業務層 / Application & Business:** 執行商品、使用者、訂單、安全授權、RAG 問答及知識匯入流程。
-3. **資料與基礎設施層 / Data & Infrastructure:** 提供 MongoDB、Redis、AI 模型、監控、日誌、告警與容器管理能力。
+## 已實作能力 / Implemented capabilities
 
-**圖例 / Reading guide:** 實線代表目前本機平台的主要資料流與服務依賴；虛線代表尚未接上的正式環境整合。AWS 維持暫停部署，MongoDB Atlas Vector Search 尚未連接。
+### 商品模組 / Catalog
 
-完整的模組邊界、資料流、安全、RAG、可觀測性與部署決策請參閱 [ARCHITECTURE.md](ARCHITECTURE.md)。
+- 商品建立與 MongoDB 持久化 / Product creation and MongoDB persistence.
+- Redis read-through cache 商品查詢。
+- 依建立時間排序的不透明游標分頁 / Opaque cursor pagination ordered newest-first.
+- 部分更新與樂觀鎖 / Partial updates with optimistic locking.
+- 使用 RFC Problem Details 統一回傳驗證、衝突、找不到資源及依賴失敗。
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for complete module boundaries, data flows, security, RAG, observability, and deployment decisions.
+### 使用者與訂單 / Users and orders
 
-## Implemented
+- 依 JWT subject 讀取與更新個人資料 / Read and update the profile associated with the JWT subject.
+- 訂單使用不可變商品快照並計算總額 / Orders use immutable product snapshots and calculated totals.
+- 控制訂單狀態轉換 / Controlled order-state transitions.
+- 使用樂觀鎖避免較新的資料被覆寫 / Optimistic locking prevents lost updates.
 
-- `POST /api/v1/products` creates a product in MongoDB.
-- `GET /api/v1/products/{id}` reads through the Redis cache.
-- `GET /api/v1/products?limit=20&cursor=...` uses opaque cursor pagination ordered by newest first.
-- `PATCH /api/v1/products/{id}` performs partial updates with optimistic locking through `version`.
-- `POST /api/v1/knowledge/documents` stores idempotent plain-text RAG sources and queues reliable chunking.
-- `GET /api/v1/knowledge/documents/{id}` returns ingestion metadata without exposing source content.
-- RFC Problem Details validation, conflict, not-found, and service-unavailable responses.
-- Correlation ID propagation through `X-Correlation-Id`.
-- Optional OIDC/JWT resource server with issuer/audience validation and route-level scopes.
-- Backend-only tenant and role resolution from JWT claims; knowledge documents and chunks carry ACL metadata.
-- Cross-tenant or role-inaccessible knowledge documents return `404` without revealing existence.
-- `POST /api/v1/rag/answers` uses tenant/role-filtered MongoDB chunks, local embeddings, vector retrieval, grounded generation, and source citations on the RAG app.
-- `GET` and `PUT /api/v1/users/me` read and update the current JWT subject's profile.
-- `POST /api/v1/orders`, `GET /api/v1/orders/{id}`, and `PATCH /api/v1/orders/{id}/status` implement owned orders, product snapshots, totals, state transitions, and optimistic locking.
-- MongoDB replica set and Redis local Docker topology.
-- Caddy local HTTPS, Keycloak OIDC, Mailpit SMTP, Alertmanager, Prometheus, Grafana, Loki, Promtail, and Portainer.
-- Prometheus metrics, ingestion queue telemetry, alert rules, centralized application logs, and provisioned Grafana datasources/dashboard.
-- AWS boundary document and `ObjectStoragePort`; no AWS SDK or live AWS connection.
+### 知識匯入與 RAG / Knowledge ingestion and RAG
 
-## Run tests and build
+- 冪等註冊純文字知識文件 / Idempotent plain-text document registration.
+- 租戶與 ACL metadata 僅由後端指派 / Tenant and ACL metadata are assigned only by the backend.
+- 透過可重試的 Outbox-style worker 正規化與切分文件。
+- 僅檢索租戶與角色允許的 chunks / Retrieval is filtered by tenant and role.
+- 使用 Spring AI 與 Ollama 產生附來源引用的 grounded answers。
+- RAG adapter 未啟用時回傳明確的 service-unavailable contract。
 
-```powershell
-.\mvnw.cmd -Prag clean verify
-```
+### 安全 / Security
 
-## Run locally with Docker
+- OIDC/JWT issuer 與 audience 驗證。
+- 路由層級讀寫 scope / Route-level read and write scopes.
+- 從可信任 token claims 解析租戶與角色。
+- 跨租戶或未授權文件回傳 404，避免洩漏資源是否存在。
+- 本機安全 runtime 使用預先配置的 Keycloak realm。
 
-Docker Desktop must be running.
+### 可觀測性 / Observability
 
-```powershell
+- 透過 X-Correlation-Id 傳遞 correlation ID。
+- HTTP 流量、知識匯入結果與 queue 狀態的 Prometheus metrics。
+- Grafana 顯示 availability、request rate、5xx ratio、p95 latency、JVM 資源與 queue 深度。
+- 應用程式離線、5xx 升高、queue backlog 與終止失敗的告警規則。
+- Promtail 與 Loki 集中式日誌 / Centralized logs through Promtail and Loki.
+
+## 本機驗證 / Local verification
+
+### 前置需求 / Prerequisites
+
+- Docker Desktop
+- PowerShell
+- Java 21（僅在容器外執行 Maven 時需要 / only for running Maven outside containers）
+
+### 1. 設定並啟動 / Configure and start
+
+~~~powershell
 Copy-Item .env.example .env
 docker compose up --build
-```
+~~~
 
-Health: `http://localhost:8080/actuator/health`
+範例環境檔提供本機開發預設值；secret 與產生的資料已由 [.gitignore](.gitignore) 排除。  
+The example environment file contains local-development defaults. Secrets and generated data are excluded by [.gitignore](.gitignore).
 
-Operations dashboard: `http://localhost:8080/dashboard/`
+### 2. 檢查服務 / Check the services
 
-Prometheus: `http://localhost:9090`
+| 服務 / Service | Local URL |
+|---|---|
+| Core API health | http://localhost:8080/actuator/health |
+| Operations dashboard | http://localhost:8080/dashboard/ |
+| OpenAPI / Swagger UI | http://localhost:8080/swagger-ui.html |
+| Secure API | http://localhost:8081 |
+| RAG API | http://localhost:8082 |
+| Keycloak | http://localhost:8180 |
+| Grafana | http://localhost:3000 |
+| Prometheus | http://localhost:9090 |
+| Alertmanager | http://localhost:9093 |
+| Mailpit | http://localhost:8025 |
+| Loki | http://localhost:3100 |
+| Portainer | http://localhost:9000 |
 
-Grafana: `http://localhost:3000` (local credentials come from `.env`; defaults are shown in `.env.example`)
+### 3. 執行測試與驗收 / Run tests and acceptance checks
 
-Keycloak: `http://localhost:8180`
+~~~powershell
+.\mvnw.cmd -Prag clean verify
 
-Mailpit: `http://localhost:8025`
+.\scripts\acceptance.ps1
+.\scripts\monitoring-acceptance.ps1
+.\scripts\platform-services-acceptance.ps1
+.\scripts\rag-acceptance.ps1
+~~~
 
-Alertmanager: `http://localhost:9093`
+Compose 啟動後，驗收腳本會檢查本機平台。前置條件與預期結果請參閱 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md)。  
+After Compose starts, the acceptance scripts exercise the local platform. See [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for prerequisites and expected results.
 
-Loki: `http://localhost:3100`
+## API 操作範例 / Example API flow
 
-Portainer: `http://localhost:9000`
+建立商品 / Create a product:
 
-OpenAPI: `http://localhost:8080/swagger-ui.html`
-
-Local RAG API: `http://localhost:8082` (requires the configured Ollama endpoint)
-
-Create a product:
-
-```powershell
+~~~powershell
 $body = @{
   sku = 'SKU-001'
   name = 'Example product'
@@ -133,21 +177,19 @@ $body = @{
   currency = 'TWD'
 } | ConvertTo-Json
 
-$product = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/products `
-  -ContentType application/json -Body $body
-```
+$product = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/products -ContentType application/json -Body $body
+~~~
 
-List products and follow the next cursor:
+使用游標取得下一頁 / Follow cursor pagination:
 
-```powershell
+~~~powershell
 $firstPage = Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/products?limit=2'
-$secondPage = Invoke-RestMethod -Uri `
-  "http://localhost:8080/api/v1/products?limit=2&cursor=$($firstPage.nextCursor)"
-```
+$secondPage = Invoke-RestMethod -Uri "http://localhost:8080/api/v1/products?limit=2&cursor=$($firstPage.nextCursor)"
+~~~
 
-Update a product with the version returned by create, get, or list:
+以樂觀鎖更新 / Update with optimistic locking:
 
-```powershell
+~~~powershell
 $update = @{
   name = 'Updated product'
   amount = 1399.00
@@ -155,84 +197,85 @@ $update = @{
   version = $product.version
 } | ConvertTo-Json
 
-Invoke-RestMethod -Method Patch -Uri "http://localhost:8080/api/v1/products/$($product.id)" `
-  -ContentType application/json -Body $update
-```
+Invoke-RestMethod -Method Patch -Uri "http://localhost:8080/api/v1/products/$($product.id)" -ContentType application/json -Body $update
+~~~
 
-The list limit must be between `1` and `100`. A malformed cursor returns `400`; an outdated product version returns `409`. JSON `null` means "leave unchanged"; use `clearDescription=true` to explicitly clear the product description. Supplying both `description` and `clearDescription=true` returns `400`.
+格式錯誤的 cursor 回傳 400；使用過期 version 更新則回傳 409。  
+A malformed cursor returns 400; an update using an outdated version returns 409.
 
-Register a plain-text knowledge source:
+## 安全模型 / Security model
 
-```powershell
-$documentBody = @{
-  title = 'Return policy'
-  mediaType = 'text/plain'
-  content = 'Products may be returned within 30 days.'
-} | ConvertTo-Json
+啟用 resource server / Enable the resource server:
 
-$document = Invoke-RestMethod -Method Post `
-  -Uri http://localhost:8080/api/v1/knowledge/documents `
-  -ContentType application/json -Body $documentBody
-
-Invoke-RestMethod -Uri `
-  "http://localhost:8080/api/v1/knowledge/documents/$($document.id)"
-```
-
-Only `text/plain` content up to 100,000 UTF-8 bytes is accepted. The backend assigns the tenant and deduplicates retries by `(tenantId, SHA-256 checksum)`. Registration returns `PENDING`; the MongoDB outbox worker normalizes and splits the source into deterministic overlapping chunks, then changes the status to `CHUNKED`. The local RAG app embeds authorized chunks on demand in a Spring AI `SimpleVectorStore`; `CHUNKED` does not claim that a persistent Atlas vector index is ready.
-
-Run the repeatable local acceptance suite after starting Compose:
-
-```powershell
-.\scripts\acceptance.ps1
-.\scripts\monitoring-acceptance.ps1
-.\scripts\platform-services-acceptance.ps1
-.\scripts\rag-acceptance.ps1
-```
-
-The application exposes Prometheus data at `/actuator/prometheus`. The provisioned `NewIdeaCase Platform` dashboard shows availability, HTTP request rate, 5xx ratio, p95 latency, JVM heap, process CPU, ingestion outcomes, and pending/processing/failed queue depth. Alert rules cover application downtime, elevated 5xx responses, queue backlog, and terminal ingestion failures.
-
-The responsive operations dashboard at `/dashboard/` reads the same-origin Actuator health and Prometheus endpoints every five seconds. ECharts animates HTTP throughput, latency, status distribution, endpoint ranking, JVM resources, thread counts, and knowledge-ingestion state without introducing a separate frontend build toolchain.
-
-The Compose monitoring endpoints are for local development. In production, keep `/actuator/prometheus`, Prometheus, and Grafana on private networks and put Grafana behind organization authentication; do not expose them directly to the public Internet.
-
-## Enable security
-
-Set the following values and start with `APP_SECURITY_ENABLED=true`:
-
-```text
+~~~text
 OIDC_ISSUER_URI
 OIDC_AUDIENCE
 OIDC_TENANT_CLAIM=tenant_id
 OIDC_ROLES_CLAIM=roles
 APP_SECURITY_ENABLED=true
-```
+~~~
 
-When security is enabled, the backend derives tenant and roles from the JWT. Clients cannot submit a tenant or an ACL filter. Route authorities are:
-
-| Route | Authority |
+| 路由 / Route | 權限 / Required authority |
 |---|---|
-| `GET /api/v1/products/**` | `SCOPE_catalog.read` |
-| `POST /api/v1/products`, `PATCH /api/v1/products/**` | `SCOPE_catalog.write` |
-| `GET /api/v1/knowledge/documents/**` | `SCOPE_knowledge.read` |
-| `POST /api/v1/knowledge/documents` | `SCOPE_knowledge.write` |
-| `POST /api/v1/rag/answers` | `SCOPE_knowledge.read` |
-| `GET /api/v1/users/me` | `SCOPE_profile.read` |
-| `PUT /api/v1/users/me` | `SCOPE_profile.write` |
-| `GET /api/v1/orders/**` | `SCOPE_orders.read` |
-| `POST /api/v1/orders`, `PATCH /api/v1/orders/**` | `SCOPE_orders.write` |
+| GET /api/v1/products/** | SCOPE_catalog.read |
+| POST or PATCH /api/v1/products/** | SCOPE_catalog.write |
+| GET /api/v1/knowledge/documents/** | SCOPE_knowledge.read |
+| POST /api/v1/knowledge/documents | SCOPE_knowledge.write |
+| POST /api/v1/rag/answers | SCOPE_knowledge.read |
+| GET /api/v1/users/me | SCOPE_profile.read |
+| PUT /api/v1/users/me | SCOPE_profile.write |
+| GET /api/v1/orders/** | SCOPE_orders.read |
+| POST or PATCH /api/v1/orders/** | SCOPE_orders.write |
 
-The default local app on port `8080` intentionally keeps security disabled and uses `app.knowledge.default-tenant-id`. The secure app on port `8081` validates tokens issued by the local Keycloak realm. Production must provide its own issuer, audience, and secret management.
+8080 的預設 API 供本機快速探索；8081 的安全 API 驗證本機 Keycloak 簽發的 token。正式環境必須提供自己的 identity provider 與 secret management。
 
-## Local RAG
+The default API on port 8080 supports convenient local exploration. The secure API on port 8081 validates tokens issued by the local Keycloak realm. Production must provide its own identity provider and secret management.
 
-The Maven `rag` profile supplies Spring AI 2.0.0 Ollama, vector-store, MongoDB Atlas Vector Store, and Advisor dependencies:
+## 值得審閱的設計決策 / Design decisions worth reviewing
 
-```powershell
-.\mvnw.cmd -Prag clean verify
-```
+- **模組化單體優先 / Modular monolith first:** 在需要之前不引入分散式系統成本。
+- **後端掌控授權上下文 / Server-owned authorization context:** client 無法指定租戶或 ACL filter。
+- **樂觀並行控制 / Optimistic concurrency:** 衝突寫入明確失敗，不會靜默覆寫新資料。
+- **游標分頁 / Cursor pagination:** 避免集合變動時產生 offset drift。
+- **Outbox-style ingestion:** 文件註冊與非同步切分之間具有可恢復、可觀測的邊界。
+- **誠實的 adapter 邊界 / Honest adapter boundaries:** 本機 Ollama retrieval 已實作；Atlas 與 AWS 維持為明確的後續整合點。
 
-The `app-rag` service on port `8082` enables the local adapter. It expects an Ollama endpoint reachable from Docker, with `qwen2.5:0.5b` and `nomic-embed-text` by default. Configure `OLLAMA_BASE_URL`, `RAG_CHAT_MODEL`, and `RAG_EMBEDDING_MODEL` in `.env` when using different endpoint or models. The default app on `8080` keeps RAG disabled and returns the explicit `503` contract.
+## 目前限制 / Current limits
 
-Local retrieval rebuilds an in-memory `SimpleVectorStore` from at most 500 already-authorized MongoDB chunks per request. This is suitable for local acceptance, not the production scale path. The production adapter still requires an isolated MongoDB Atlas Vector Search environment, persistent embeddings, target-provider credentials, and golden-dataset evaluation. AWS ECR/ECS/EC2/ALB/S3/ElastiCache/CloudWatch/Secrets Manager remain outside the active Compose topology.
+- 本機 RAG 每次請求會從有限數量、已授權的 MongoDB chunks 重建記憶體 SimpleVectorStore；此流程用於本機驗證，不代表正式環境規模。
+- Atlas Vector Search、持久化 production embeddings 與 golden-dataset evaluation 仍為後續工作。
+- AWS SDK 整合與正式 AWS 部署不在目前 topology 內。
+- Compose monitoring endpoints 僅供開發；正式環境應將 metrics services 保持在 private network，並使用組織驗證保護 Grafana。
 
-See [ARCHITECTURE.md](ARCHITECTURE.md), [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md), and [docs/AWS-ADAPTER-PLAN.md](docs/AWS-ADAPTER-PLAN.md).
+- Local RAG rebuilds an in-memory SimpleVectorStore from a bounded set of authorized MongoDB chunks per request. This is a local verification path, not the production-scale design.
+- Atlas Vector Search, persistent production embeddings, and golden-dataset evaluation remain future work.
+- AWS SDK integration and live AWS deployment are not part of the active topology.
+- Compose monitoring endpoints are for development only. Production should keep metrics services private and protect Grafana with organization authentication.
+
+雲端邊界規劃請參閱 [docs/AWS-ADAPTER-PLAN.md](docs/AWS-ADAPTER-PLAN.md)。  
+See [docs/AWS-ADAPTER-PLAN.md](docs/AWS-ADAPTER-PLAN.md) for the planned cloud boundary.
+
+## Repository 導覽 / Repository guide
+
+| 路徑 / Path | 用途 / Purpose |
+|---|---|
+| src/main | 應用程式模組與設定 / Application modules and configuration |
+| src/test | 單元與整合測試 / Unit and integration verification |
+| scripts | 可重複執行的本機驗收 / Repeatable local acceptance checks |
+| monitoring | Prometheus、Grafana、Loki 與告警設定 |
+| keycloak | 本機 identity provider 設定 |
+| docs/ACCEPTANCE.md | 驗證方式與預期結果 / Verification guide and expected results |
+| ARCHITECTURE.md | 詳細架構與信任邊界 / Architecture and trust boundaries |
+| docs/AWS-ADAPTER-PLAN.md | 尚未實作的雲端整合規劃 / Planned cloud integration |
+
+## 技術棧 / Tech stack
+
+Java 21 · Spring Boot 4.1 · Spring Security · Spring Data MongoDB · Spring Data Redis · Spring AI · Testcontainers · Docker Compose · Keycloak · Caddy · Prometheus · Grafana · Loki · Alertmanager · Ollama
+
+## 建議審閱順序 / Suggested review order
+
+1. 從 [ARCHITECTURE.md](ARCHITECTURE.md) 了解架構 / Start with the architecture.
+2. 審閱商品 API 的快取、游標分頁與樂觀鎖 / Review caching, cursor pagination, and optimistic locking.
+3. 審閱安全設定與租戶、角色解析 / Review security and tenant/role context.
+4. 審閱知識註冊與 ingestion worker / Review knowledge registration and the ingestion worker.
+5. 執行上方驗證流程並參閱 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) / Run the verification path and inspect the acceptance guide.
